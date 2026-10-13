@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'story_session.dart';
 import 'demo/temporary_story_catalog.dart';
+import 'story_catalog.dart';
+import 'creator/project_library.dart';
+import 'creator/creator_studio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const ink = Color(0xFF0D0E10);
 const panel = Color(0xFF191A1E);
@@ -8,10 +12,17 @@ const lavender = Color(0xFFD5F76B);
 const muted = Color(0xFF92959E);
 const line = Color(0xFF2B2D32);
 
-void main() => runApp(const AnimeverseApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final library = ProjectLibrary(DeviceProjectStorage(SharedPreferencesAsync()));
+  try { await library.load(); }
+  catch (_) { library.readOnly = true; library.saveError = 'Saved project could not be loaded. Restart before creating new content.'; }
+  runApp(AnimeverseApp(library: library));
+}
 
 class AnimeverseApp extends StatelessWidget {
-  const AnimeverseApp({super.key});
+  const AnimeverseApp({super.key, this.library});
+  final ProjectLibrary? library;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Animeverse', debugShowCheckedModeBanner: false,
@@ -26,11 +37,12 @@ class AnimeverseApp extends StatelessWidget {
       inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: panel, contentPadding: const EdgeInsets.all(16),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: line)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: line)))),
-    home: const LibraryScreen());
+    home: LibraryScreen(library: library));
 }
 
 class StoryCover {
-  const StoryCover(this.title, this.genre, this.description, this.art, this.character, this.tag);
+  const StoryCover(this.title, this.genre, this.description, this.art, this.character, this.tag, {this.definition});
+  final StoryDefinition? definition;
   final String title, genre, description, art, character, tag;
 }
 const covers = [
@@ -52,24 +64,62 @@ class Artwork extends StatelessWidget {
 class DemoBadge extends StatelessWidget {
   const DemoBadge({super.key});
   @override
-  Widget build(BuildContext context) => const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, size: 5, color: muted), SizedBox(width: 6), Flexible(child: Text('Preview · scripted story · session-only saves', style: TextStyle(color: muted, fontSize: 10)))]);
+  Widget build(BuildContext context) => const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, size: 5, color: muted), SizedBox(width: 6), Flexible(child: Text('Preview · scripted story · local device saves', style: TextStyle(color: muted, fontSize: 10)))]);
 }
 
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+  const LibraryScreen({super.key, this.library});
+  final ProjectLibrary? library;
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
-class _LibraryScreenState extends State<LibraryScreen> {
+class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserver {
+  late final project = widget.library ?? ProjectLibrary(MemoryProjectStorage());
+  @override
+  void initState() { super.initState(); project.addListener(projectChanged); WidgetsBinding.instance.addObserver(this); }
+  void projectChanged() { if (mounted) setState(() {}); }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) project.flush();
+  }
+  Future<void> editDraft([CreatorDraft? draft]) async {
+    if (project.readOnly) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(project.saveError!)));
+      return;
+    }
+    final editing = draft ?? project.newDraft();
+    await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => CreatorStudio(
+      library: project, draft: editing, onPlay: open)));
+    if (mounted) setState(() => tab = 2);
+  }
+  Future<void> showDetail(StoryCover story) async {
+    final begin = await showModalBottomSheet<bool>(context: context, isScrollControlled: true,
+      backgroundColor: ink, builder: (context) => SafeArea(child: SingleChildScrollView(
+        padding: const EdgeInsets.all(22), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(height: 200, child: Artwork(story.art))),
+          const SizedBox(height: 20), Text(story.tag, style: const TextStyle(color: lavender, fontSize: 10)),
+          const SizedBox(height: 8), Text(story.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12), Text(story.description, style: const TextStyle(color: muted, height: 1.6)),
+          const SizedBox(height: 18), Text('Companion · ${story.character}'),
+          if (story.definition?.foundation == 'Original creator draft') const Padding(
+            padding: EdgeInsets.only(top: 12), child: Text('Local creator edition · your playthrough stays separate.',
+              style: TextStyle(color: muted, fontSize: 12))),
+          const SizedBox(height: 24), SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true), icon: const Icon(Icons.play_arrow), label: const Text('Start adventure'))),
+        ]))));
+    if (begin == true && mounted) await start(story.title, definition: story.definition);
+  }
   int tab = 0;
   String genre = 'All';
   final search = TextEditingController();
-  final List<StorySession> sessions = [];
+  List<StorySession> get sessions => project.sessions;
   static const testStoriesEnabled = bool.fromEnvironment('ANIMEVERSE_DEMO_CATALOG', defaultValue: true);
   final temporaryCatalog = TemporaryStoryCatalog();
   bool loadingCatalog = false;
   List<StoryCover> get libraryCovers => [...covers, if (testStoriesEnabled)
-    ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag))];
+    ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag, definition: s)),
+    ...project.showcase.map((w) => StoryCover(w.story.title, w.story.genre, w.story.description,
+      w.story.art, w.story.character, 'LOCAL SHOWCASE · VERSION ${w.version}', definition: w.story))];
   Future<void> refreshCatalog() async {
     if (loadingCatalog) return;
     setState(() => loadingCatalog = true);
@@ -81,8 +131,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
   @override
-  void dispose() { temporaryCatalog.dispose(); search.dispose(); for (final s in sessions) { s.dispose(); } super.dispose(); }
-  Future<void> start(String title) async {
+  void dispose() { WidgetsBinding.instance.removeObserver(this); project.removeListener(projectChanged); project.dispose(); temporaryCatalog.dispose(); search.dispose(); super.dispose(); }
+  Future<void> start(String title, {StoryDefinition? definition}) async {
+    if (definition?.foundation == 'Original creator draft') {
+      final session = StorySession(title, definition!.character, story: definition);
+      project.addSession(session); await open(session); return;
+    }
     final companion = await showModalBottomSheet<String>(context: context, isScrollControlled: true, backgroundColor: ink,
       builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Center(child: Container(width: 34, height: 4, decoration: BoxDecoration(color: line, borderRadius: BorderRadius.circular(2)))), const SizedBox(height: 24),
@@ -98,12 +152,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (companion == null || !mounted) return;
     final candidates = temporaryCatalog.stories.where((s) => s.title == title);
     final session = StorySession(title, companion,
-      story: testStoriesEnabled && candidates.isNotEmpty ? candidates.first : null);
-    setState(() => sessions.add(session));
+      story: definition ?? (testStoriesEnabled && candidates.isNotEmpty ? candidates.first : null));
+    project.addSession(session);
     await open(session);
   }
   Future<void> open(StorySession session) async {
     await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ChatScreen(session: session)));
+    await project.flush();
     if (mounted) setState(() {});
   }
   @override
@@ -111,25 +166,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final query = search.text.trim().toLowerCase();
     final visible = libraryCovers.where((s) => (genre == 'All' || genre == s.genre) && s.title.toLowerCase().contains(query)).toList();
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
-      Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. AI, accounts and permanent saves are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
+      Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. Replies are scripted. Stories and progress save on this device. Online accounts and sharing are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
       const SizedBox(height: 24),
       if (tab == 0) ...[
         const Text('YOUR STORY. YOUR RULES.', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2.4, fontWeight: FontWeight.w700)), const SizedBox(height: 8),
         const Text('Your next chapter\nstarts here.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.12, letterSpacing: -.8)), const SizedBox(height: 20),
         TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Search stories, worlds, possibilities', prefixIcon: Icon(Icons.search, size: 20), isDense: true)), const SizedBox(height: 14),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, showCheckmark: false, onSelected: (_) => setState(() => genre = g), selectedColor: lavender, labelStyle: TextStyle(color: genre == g ? ink : muted, fontSize: 12), side: const BorderSide(color: line)))])),
+        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure', 'Mystery', 'Romance', 'Horror']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, showCheckmark: false, onSelected: (_) => setState(() => genre = g), selectedColor: lavender, labelStyle: TextStyle(color: genre == g ? ink : muted, fontSize: 12), side: const BorderSide(color: line)))])),
         const SizedBox(height: 16),
+        if (project.saveError != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(project.saveError!, style: const TextStyle(color: Colors.orangeAccent))),
         if (testStoriesEnabled) Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
           const Expanded(child: Text('5 temporary original adventures', style: TextStyle(color: muted, fontSize: 12))),
           TextButton(onPressed: loadingCatalog ? null : refreshCatalog, child: Text(loadingCatalog ? 'Loading…' : 'Refresh manga references')),
         ])),
-        if (visible.isNotEmpty) HeroCover(story: visible.first, onTap: () => start(visible.first.title)),
+        if (visible.isNotEmpty) HeroCover(story: visible.first, onTap: () => showDetail(visible.first)),
         if (visible.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Text('No stories found. Try another title or genre.')),
         const SizedBox(height: 26), const Row(children: [Expanded(child: Text('Find your next obsession', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))), SizedBox(width: 12), Icon(Icons.arrow_forward, size: 18, color: muted)]), const SizedBox(height: 14),
         LayoutBuilder(builder: (context, constraints) {
           final count = constraints.maxWidth > 600 ? 3 : 2;
           final width = (constraints.maxWidth - 12 * (count - 1)) / count;
-          return Wrap(spacing: 12, runSpacing: 20, children: [for (final story in visible) SizedBox(width: width, child: PosterCover(story: story, onTap: () => start(story.title)))]);
+          return Wrap(spacing: 12, runSpacing: 20, children: [for (final story in visible) SizedBox(width: width, child: PosterCover(story: story, onTap: () => showDetail(story)))]);
         }),
         const SizedBox(height: 28), const DemoBadge(),
       ],
@@ -139,8 +195,49 @@ class _LibraryScreenState extends State<LibraryScreen> {
         for (final s in sessions) Padding(padding: const EdgeInsets.only(bottom: 12), child: Material(color: panel, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => open(s), borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 62, height: 82, child: Artwork(s.story?.art ?? coverFor(s.title).art))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), Text('${s.character} · ${s.activeBranch}', style: const TextStyle(color: muted, fontSize: 12)), const SizedBox(height: 8), const Text('Continue chapter →', style: TextStyle(color: lavender, fontSize: 12))]))]))))),
         const SizedBox(height: 16), const DemoBadge(),
       ],
-      if (tab == 2) CreateStoryForm(onCreate: start),
-    ])))), bottomNavigationBar: DecoratedBox(decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (i) => setState(() => tab = i), destinations: const [NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Discover'), NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'My stories'), NavigationDestination(icon: Icon(Icons.edit_square), label: 'Create')])));
+      if (tab == 2) ...[
+        const Text('My titles', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8), const Text('Your worlds. Your editions. Your next idea.', style: TextStyle(color: muted)),
+        const SizedBox(height: 22),
+        if (project.drafts.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 24),
+          child: Text('Create your first story in the studio.', style: TextStyle(color: muted))),
+        for (final d in project.drafts.reversed) Padding(padding: const EdgeInsets.only(bottom: 12),
+          child: ListTile(tileColor: panel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 48, height: 64, child: Artwork(d.art))),
+            title: Text(d.title.trim().isEmpty ? 'Untitled draft' : d.title),
+            subtitle: const Text('Draft · saved on this device'), trailing: const Icon(Icons.edit_outlined, color: lavender),
+            onTap: () => editDraft(d))),
+        if (project.latest.isNotEmpty) ...[
+          const SizedBox(height: 22), const Text('Story editions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          for (final w in project.latest) ListTile(contentPadding: EdgeInsets.zero,
+            title: Text(w.draft.title), subtitle: Text('Version ${w.version} · ${w.visibility == WorkVisibility.public ? 'Local showcase' : w.visibility == WorkVisibility.linkOnly ? 'Link only preview' : 'Private'}'),
+            trailing: const Icon(Icons.play_circle_outline, color: lavender),
+            onTap: () => showDetail(StoryCover(w.story.title, w.story.genre, w.story.description,
+              w.story.art, w.story.character, 'BY YOU · VERSION ${w.version}', definition: w.story))),
+        ],
+        const SizedBox(height: 22), FilledButton.icon(onPressed: () => editDraft(), icon: const Icon(Icons.add), label: const Text('New draft')),
+      ],
+      if (tab == 3) ...[
+        const Text('THE CREATOR STUDIO', style: TextStyle(color: lavender, letterSpacing: 2, fontSize: 10)),
+        const SizedBox(height: 12), const Text('A world only you\ncould imagine.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.15)),
+        const SizedBox(height: 12), const Text('Build an original adventure. Shape the cast, the stakes and the first scene.',
+          style: TextStyle(color: muted, height: 1.6)),
+        const SizedBox(height: 24), ClipRRect(borderRadius: BorderRadius.circular(16),
+          child: const SizedBox(height: 200, child: Artwork('assets/art/lantern.png'))),
+        const SizedBox(height: 24),
+        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.auto_awesome_outlined, color: lavender),
+          title: Text('Define your world'), subtitle: Text('Choose a genre, tone, role and goal.')),
+        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.play_circle_outline, color: lavender),
+          title: Text('Preview the opening'), subtitle: Text('Read, edit and play your first scene.')),
+        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.public_outlined, color: lavender),
+          title: Text('Prepare your story edition'), subtitle: Text('Private, link only or local showcase.')),
+        const SizedBox(height: 20), FilledButton.icon(onPressed: () => editDraft(),
+          icon: const Icon(Icons.add), label: const Text('Create story')),
+        const SizedBox(height: 20), const Text('Local preview · scripted replies · online publishing pending',
+          style: TextStyle(color: muted, fontSize: 11)),
+      ],
+    ])))), bottomNavigationBar: DecoratedBox(decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (i) => setState(() => tab = i), destinations: const [NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Discover'), NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'My stories'), NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), label: 'My titles'), NavigationDestination(icon: Icon(Icons.edit_square), label: 'Create')])));
   }
 }
 

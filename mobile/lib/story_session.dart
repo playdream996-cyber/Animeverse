@@ -25,6 +25,28 @@ class StorySession extends ChangeNotifier {
   String summary = 'You arrived at the academy after dusk. Your companion recognized you and a mysterious silver key appeared.';
   final List<String> memories = ['You carry a silver key.', 'Your companion recognized you at the academy.'];
   List<Turn> get turns => branches[activeBranch]!;
+  Map<String, dynamic> toJson() => {
+    'title': title, 'character': character, 'story': story?.toJson(),
+    'branches': branches.map((key, turns) => MapEntry(key,
+      turns.map((t) => {'speaker': t.speaker, 'text': t.text}).toList())),
+    'activeBranch': activeBranch, 'summary': summary, 'memories': memories,
+    'interrupted': isReplying, 'visibleReply': visibleReply, 'replyStopped': replyStopped};
+  factory StorySession.fromJson(Map<String, dynamic> j) {
+    final story = j['story'] == null ? null : StoryDefinition.fromJson(Map<String, dynamic>.from(j['story'] as Map));
+    final s = StorySession(j['title'] as String, j['character'] as String, story: story);
+    s.branches.clear();
+    (j['branches'] as Map).forEach((key, values) {
+      s.branches[key as String] = (values as List).map((t) => Turn(t['speaker'] as String, t['text'] as String)).toList();
+    });
+    s.activeBranch = j['activeBranch'] as String;
+    if (!s.branches.containsKey(s.activeBranch)) throw const FormatException('Missing saved timeline');
+    s.summary = j['summary'] as String;
+    s.memories..clear()..addAll(List<String>.from(j['memories'] as List));
+    s.replyStopped = j['replyStopped'] == true || j['interrupted'] == true;
+    final partial = j['visibleReply'] as String? ?? '';
+    if (j['interrupted'] == true && partial.isNotEmpty) s.turns.add(Turn(s.character, partial));
+    return s;
+  }
   Timer? _replyTimer;
   bool isReplying = false;
   bool replyStopped = false;

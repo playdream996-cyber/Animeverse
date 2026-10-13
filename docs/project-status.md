@@ -1,0 +1,46 @@
+# Animeverse implementation tracker
+
+Updated 2026-10-14. This describes the active frontend/flutter-prototype branch.
+Main and earlier draft PRs are not a deployed combined product.
+
+## Visible in the APK
+
+| Feature | Implementation | Limit |
+|---|---|---|
+| Discovery/details | Original art, genre/search, readable detail sheet | Local catalogue |
+| Guided creator | Three steps, editable premise/settings/opening | Template opening, no AI drafting |
+| My titles | Drafts and story editions | Stored on this device |
+| Visibility | Private, link-only and public preview | No real links or online publication |
+| Local showcase | Latest public edition appears in discovery | Other users cannot access it |
+| Preview/play | Each start creates its own StorySession | Scripted responses |
+| Version isolation | Editing drafts doesn't mutate editions or existing sessions | Local model, not server permissions |
+| Save/resume | Serial JSON snapshots and lifecycle flush | Best effort; no critical-data guarantees |
+| Interrupted replies | Partial reply restores stopped | No backend job to reconnect |
+| Memory/branches | Editable notes and independent transcript branches | No semantic Mem0/historical-state integration |
+
+## Implemented backend foundation
+
+Ollama transport, prompt/context builder, structural validation, SQLite progress,
+owner-scoped store, version checks, request idempotency and simple ending gates.
+Tests use fake model responses. The frontend does not yet call this backend.
+
+## Required for an online beta
+
+1. Authentication and authorized API.
+2. PostgreSQL definitions, immutable versions and private playthroughs.
+3. Publication review, listing permissions, report/block workflow.
+4. Real staged model streaming with cancellation and recovery.
+5. Scoped Mem0, correction propagation and rolling summaries.
+6. Stat/lore/ending prerequisites beyond model-proposed objective completion.
+7. Device and server performance tests, sign/release process.
+
+Creator following, financial rewards, advanced rankings and live image generation
+remain later work. Temporary fixtures stay independently removable.
+
+## Checks
+
+Unit tests cover local serialization, save failures, visibility filtering,
+private-session exclusion, version pinning and interrupted partial replies.
+Widget tests cover the guided editor and discovery isolation.
+CI renders real Flutter screenshots for visual inspection. They are preview artifacts,
+not fixed visual regression baselines. APK build status is recorded in the PR.

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:animeverse/main.dart';
 import 'package:animeverse/story_session.dart';
 import 'load_fonts.dart';
+import 'package:animeverse/creator/project_library.dart';
+import 'package:animeverse/creator/creator_studio.dart';
 
 void viewport(WidgetTester tester) {
   tester.view.physicalSize = const Size(390, 844);
@@ -41,6 +43,21 @@ void main() {
     await expectLater(find.byKey(const Key('preview')), matchesGoldenFile('goldens/chapter.png'));
     await tester.pumpWidget(const SizedBox());
     session.dispose();
+  });
+  testWidgets('render guided studio preview', (tester) async {
+    viewport(tester);
+    final p = ProjectLibrary(MemoryProjectStorage());
+    final d = p.newDraft()..title = 'The city above the clouds'..premise = 'A missing lighthouse. A promise only you can keep.';
+    await tester.pumpWidget(const AnimeverseApp());
+    final context = tester.element(find.byType(LibraryScreen));
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => RepaintBoundary(
+      key: const Key('studio'), child: CreatorStudio(library: p, draft: d, onPlay: (_) async {}))));
+    await tester.runAsync(() async {
+      await precacheImage(const AssetImage('assets/art/academy.png'), context);
+    });
+    await tester.pumpAndSettle();
+    await expectLater(find.byKey(const Key('studio')), matchesGoldenFile('goldens/studio.png'));
+    await tester.pumpWidget(const SizedBox()); p.dispose();
   });
   testWidgets('render creator preview', (tester) async {
     viewport(tester);

@@ -12,6 +12,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('The Midnight Academy').first);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Start adventure'));
+    await tester.tap(find.text('Start adventure'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Aira'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Examine the key'));
@@ -38,10 +41,13 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Choose companion'));
+    await tester.ensureVisible(find.text('Create story'));
+    await tester.tap(find.text('Create story'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Choose companion'));
+    await tester.ensureVisible(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Give your story a name'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add a title and premise to continue.'), findsOneWidget);
   });
 }

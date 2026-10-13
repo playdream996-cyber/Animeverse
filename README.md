@@ -1,33 +1,44 @@
 # Animeverse
 
-Original Android interactive anime storytelling project.
+An original Android interactive story project with a guided creator studio and
+a path toward community-published adventures. The active implementation is currently
+on the frontend/flutter-prototype branch; this is a pilot, not a launched service.
 
-## Current status
+## What you can see in the current APK
 
-This repository begins with a public-source analysis of OOC: The Playable Anime and a proposed task harness. There is no application implementation yet. No APK, emulator session, private backend, or live inference benchmark has been inspected or tested.
+- Illustrated discovery and story detail previews.
+- Guided creation: premise, genre, tone, world, player role, goal, companion and opening.
+- Playable scripted previews and editable original openings.
+- My titles: recoverable local drafts and versioned story editions.
+- Private / link-only / public visibility preview. Public editions appear in this
+  device's local showcase. No content is uploaded or shared online.
+- My stories: independent playthroughs, progressive reply text, Stop, notes and branches.
+- Best-effort on-device saving through a replaceable storage adapter.
 
-## Agreed direction
+The three original prototype covers and five separate temporary test stories remain.
+The manga reference adapter is optional and does not provide story text.
 
-- Flutter Android client: interface, prepared anime art, animation and audio playback.
-- Self-hosted FastAPI backend: model requests, authenticated access and workflows.
-- Initial model candidate: Qwen3 4B Q4_K_M through Ollama, non-thinking dialogue.
-- Self-hosted Mem0: memory extraction and retrieval, local embeddings, persistent Qdrant.
-- PostgreSQL: authoritative characters, relationships, story state and event history.
-- Cloud spending target: USD 20/month for a small pilot. This is not a verified production capacity or latency guarantee.
-- A VPS is logically isolated but may share physical hardware; it is not confidential computing.
-- No paid inference API is required in this proposed setup. Server, electricity, backup and transfer costs still exist.
-- Model permissiveness is a separate requirement; the proposed Qwen model is not established as uncensored.
+## What is already in the repository
 
-## Research and design
+| Area | Location | Current state |
+|---|---|---|
+| Flutter mobile app | mobile/ | Buildable scripted creator/player preview |
+| Creator and local storage model | mobile/lib/creator/ | Drafts, isolated editions and device saves |
+| Adventure harness | backend/ | Preferences, context, validated state and SQLite pilot |
+| Product audit | docs/research/ooc-deep-product-audit.md | 47-feature review and revised priorities |
+| Runtime acceptance plan | docs/research/ooc-runtime-test-plan.md | 45 tests still requiring execution |
+| Project implementation tracker | docs/project-status.md | Implemented versus pending |
 
-See [OOC assessment and harness](docs/ooc-assessment-and-harness.md).
+## Next production integration
 
-## Next evidence needed
+Authenticated accounts and API; PostgreSQL work versions and private sessions;
+Mem0 and versioned summaries; actual streamed model replies; publish/review permissions;
+stats, conditional lore and ending evaluator. Then real-model and device benchmarks.
 
-1. Authorized hands-on OOC access or an APK for client inspection.
-2. Trace onboarding, character creation, story actions, session persistence and branching.
-3. Select an available server with a complete checkout price.
-4. Benchmark the actual model: first-token latency, generation speed, memory use and concurrent requests.
-5. Implement and test the original story loop and task isolation before expanding features.
+Local preview visibility is not server authorization. SharedPreferences is not a
+critical-data database or a guarantee against abrupt process/device failure.
+No cross-device sync, public creator platform or trained story model is claimed.
+A live cloud server and real users still need performance/quality testing.
 
-Do not copy OOC proprietary assets or code. Public behavior does not establish its private prompts, model or architecture.
+See mobile/README.md and backend/README.md for run commands. GitHub Actions builds
+the debug APK and runs Flutter/backend tests. Release signing is not configured.
