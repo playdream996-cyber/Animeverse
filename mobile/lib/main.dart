@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'story_session.dart';
 
-const ink = Color(0xFF121320);
-const panel = Color(0xFF1D2032);
-const lavender = Color(0xFFB8A6FF);
+const ink = Color(0xFF0D0E10);
+const panel = Color(0xFF191A1E);
+const lavender = Color(0xFFD5F76B);
+const muted = Color(0xFF92959E);
+const line = Color(0xFF2B2D32);
 
 void main() => runApp(const AnimeverseApp());
 
@@ -14,12 +16,42 @@ class AnimeverseApp extends StatelessWidget {
     title: 'Animeverse', debugShowCheckedModeBanner: false,
     theme: ThemeData(brightness: Brightness.dark, useMaterial3: true,
       scaffoldBackgroundColor: ink,
-      colorScheme: ColorScheme.fromSeed(seedColor: lavender, brightness: Brightness.dark),
+      colorScheme: ColorScheme.fromSeed(seedColor: lavender, brightness: Brightness.dark, primary: lavender, onPrimary: ink, surface: panel),
       appBarTheme: const AppBarTheme(backgroundColor: ink, surfaceTintColor: Colors.transparent),
+      dividerColor: line,
+      navigationBarTheme: const NavigationBarThemeData(backgroundColor: ink, indicatorColor: Color(0xFF2A331B)),
       cardTheme: const CardThemeData(color: panel, elevation: 0),
-      inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: panel,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none))),
+      filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))),
+      inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: panel, contentPadding: const EdgeInsets.all(16),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: line)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: line)))),
     home: const LibraryScreen());
+}
+
+class StoryCover {
+  const StoryCover(this.title, this.genre, this.description, this.art, this.character, this.tag);
+  final String title, genre, description, art, character, tag;
+}
+const covers = [
+  StoryCover('The Midnight Academy', 'Fantasy', 'The academy has forgotten you. One girl hasn’t.', 'assets/art/academy.png', 'Aira', 'MYSTERY · MAGIC'),
+  StoryCover('Signals from Tomorrow', 'Sci-fi', 'A message from the future. A stranger who knows your name.', 'assets/art/signals.png', 'Ren', 'CYBERPUNK · SUSPENSE'),
+  StoryCover('The Last Lantern', 'Adventure', 'Keep the last light alive in a city of sleeping stars.', 'assets/art/lantern.png', 'Mika', 'ADVENTURE · FOUND FAMILY'),
+];
+StoryCover coverFor(String title) => covers.firstWhere((s) => s.title == title, orElse: () => covers.first);
+String artFor(String character) => covers.firstWhere((s) => s.character == character, orElse: () => covers.first).art;
+
+class Artwork extends StatelessWidget {
+  const Artwork(this.path, {super.key, this.alignment = Alignment.centerRight});
+  final String path;
+  final Alignment alignment;
+  @override
+  Widget build(BuildContext context) => Image.asset(path, fit: BoxFit.cover, alignment: alignment, width: double.infinity, height: double.infinity,
+    errorBuilder: (_, error, stack) => const ColoredBox(color: panel, child: Center(child: Icon(Icons.landscape_outlined, color: muted))));
+}
+class DemoBadge extends StatelessWidget {
+  const DemoBadge({super.key});
+  @override
+  Widget build(BuildContext context) => const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, size: 5, color: muted), SizedBox(width: 6), Flexible(child: Text('Preview · scripted story · session-only saves', style: TextStyle(color: muted, fontSize: 10)))]);
 }
 
 class LibraryScreen extends StatefulWidget {
@@ -35,17 +67,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() { search.dispose(); for (final s in sessions) { s.dispose(); } super.dispose(); }
   Future<void> start(String title) async {
-    final character = await showModalBottomSheet<String>(context: context, isScrollControlled: true,
-      builder: (context) => SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Choose your companion', style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8), const Text('A new face. A story only you can tell.'), const SizedBox(height: 20),
-        for (final c in [('Aira', 'Curious mage · fiercely loyal', Icons.auto_awesome), ('Ren', 'Reserved knight · a hidden past', Icons.shield_outlined), ('Mika', 'Inventor · chaos with a kind heart', Icons.bolt)])
-          ListTile(contentPadding: EdgeInsets.zero, leading: CircleAvatar(backgroundColor: lavender.withValues(alpha: .15), child: Icon(c.$3, color: lavender)),
-            title: Text(c.$1), subtitle: Text(c.$2), trailing: const Icon(Icons.arrow_forward), onTap: () => Navigator.pop(context, c.$1)),
-        const SizedBox(height: 12), const Text('Demo companions · original placeholder designs', style: TextStyle(color: Colors.white54, fontSize: 12)),
-      ]))));
-    if (character == null || !mounted) return;
-    final session = StorySession(title, character);
+    final companion = await showModalBottomSheet<String>(context: context, isScrollControlled: true, backgroundColor: ink,
+      builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Center(child: Container(width: 34, height: 4, decoration: BoxDecoration(color: line, borderRadius: BorderRadius.circular(2)))), const SizedBox(height: 24),
+        const Text('Every story starts with someone.', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, height: 1.2)),
+        const SizedBox(height: 8), const Text('Choose the companion for this chapter.', style: TextStyle(color: muted)), const SizedBox(height: 20),
+        for (final c in [('Aira', 'A mage with a promise to keep'), ('Ren', 'A quiet investigator from tomorrow'), ('Mika', 'A traveler who follows the stars')])
+          Padding(padding: const EdgeInsets.only(bottom: 10), child: Material(color: panel, borderRadius: BorderRadius.circular(14), child: InkWell(borderRadius: BorderRadius.circular(14), onTap: () => Navigator.pop(context, c.$1), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
+            ClipRRect(borderRadius: BorderRadius.circular(10), child: SizedBox(width: 64, height: 72, child: Artwork(artFor(c.$1)))), const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c.$1, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(c.$2, style: const TextStyle(color: muted, fontSize: 12))])), const Icon(Icons.arrow_forward, size: 18, color: lavender),
+          ]))))),
+        const SizedBox(height: 12), const DemoBadge(),
+      ])))));
+    if (companion == null || !mounted) return;
+    final session = StorySession(title, companion);
     setState(() => sessions.add(session));
     await open(session);
   }
@@ -56,48 +91,58 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final query = search.text.trim().toLowerCase();
-    final stories = [('The Midnight Academy', 'Fantasy', 'A forgotten promise. A door that opens only for you.', Icons.nightlight_round),
-      ('Signals from Tomorrow', 'Sci-fi', 'Someone in the future knows your name.', Icons.satellite_alt),
-      ('The Last Lantern', 'Adventure', 'One light remains in a city of sleeping stars.', Icons.flare)];
-    final visible = stories.where((s) => (genre == 'All' || genre == s.$2) && s.$1.toLowerCase().contains(query));
-    return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.all(24), children: [
-      Row(children: [const Icon(Icons.auto_awesome, color: lavender), const SizedBox(width: 10), const Text('ANIMEVERSE', style: TextStyle(letterSpacing: 3, fontWeight: FontWeight.w800)), const Spacer(), IconButton(tooltip: 'About this demo', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('Your story starts here'), content: const Text('Frontend prototype. Replies are scripted; no AI or cloud service is connected. Sessions and memories reset when the app closes.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline))]),
-      const SizedBox(height: 28), Text(tab == 0 ? 'Step into another life.' : tab == 1 ? 'Your stories.' : 'Make a world your own.', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, height: 1.15)),
-      const SizedBox(height: 12), Text(tab == 0 ? 'You are the main character. Where will you go?' : tab == 1 ? 'Pick up where your imagination left off.' : 'Start with an idea. Choose your companion.', style: const TextStyle(color: Colors.white60)),
-      const SizedBox(height: 20), const DemoBadge(), const SizedBox(height: 24),
+    final visible = covers.where((s) => (genre == 'All' || genre == s.genre) && s.title.toLowerCase().contains(query)).toList();
+    return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
+      Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. AI, accounts and permanent saves are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
+      const SizedBox(height: 24),
       if (tab == 0) ...[
-        TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Find your next adventure', prefixIcon: Icon(Icons.search))),
-        const SizedBox(height: 14), SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, onSelected: (_) => setState(() => genre = g)))])),
-        const SizedBox(height: 20),
-        for (final story in visible) Padding(padding: const EdgeInsets.only(bottom: 18), child: StoryCard(title: story.$1, genre: story.$2, description: story.$3, icon: story.$4, onTap: () => start(story.$1))),
-        if (visible.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('No stories found. Try another title or genre.')),
+        const Text('YOUR STORY. YOUR RULES.', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2.4, fontWeight: FontWeight.w700)), const SizedBox(height: 8),
+        const Text('Your next chapter\nstarts here.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.12, letterSpacing: -.8)), const SizedBox(height: 20),
+        TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Search stories, worlds, possibilities', prefixIcon: Icon(Icons.search, size: 20), isDense: true)), const SizedBox(height: 14),
+        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, showCheckmark: false, onSelected: (_) => setState(() => genre = g), selectedColor: lavender, labelStyle: TextStyle(color: genre == g ? ink : muted, fontSize: 12), side: const BorderSide(color: line)))])),
+        const SizedBox(height: 16),
+        if (visible.isNotEmpty) HeroCover(story: visible.first, onTap: () => start(visible.first.title)),
+        if (visible.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Text('No stories found. Try another title or genre.')),
+        const SizedBox(height: 26), const Row(children: [Text('Find your next obsession', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)), Spacer(), Icon(Icons.arrow_forward, size: 18, color: muted)]), const SizedBox(height: 14),
+        LayoutBuilder(builder: (context, constraints) {
+          final count = constraints.maxWidth > 600 ? 3 : 2;
+          final width = (constraints.maxWidth - 12 * (count - 1)) / count;
+          return Wrap(spacing: 12, runSpacing: 20, children: [for (final story in visible) SizedBox(width: width, child: PosterCover(story: story, onTap: () => start(story.title)))]);
+        }),
+        const SizedBox(height: 28), const DemoBadge(),
       ],
       if (tab == 1) ...[
-        if (sessions.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text('Your first adventure is waiting in Discover.')),
-        for (final s in sessions) Card(child: ListTile(leading: const Icon(Icons.bookmark_outline, color: lavender), title: Text(s.title), subtitle: Text('${s.character} · ${s.activeBranch} · ${s.turns.length} messages'), trailing: const Icon(Icons.arrow_forward), onTap: () => open(s))),
+        const Text('Your library', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('The worlds you stepped into.', style: TextStyle(color: muted)), const SizedBox(height: 24),
+        if (sessions.isEmpty) Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)), child: Column(children: [const Icon(Icons.auto_stories_outlined, size: 40, color: lavender), const SizedBox(height: 16), const Text('Your first chapter is waiting', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('Choose a world in Discover and make it yours.', textAlign: TextAlign.center, style: TextStyle(color: muted)), const SizedBox(height: 20), FilledButton(onPressed: () => setState(() => tab = 0), child: const Text('Explore stories'))])),
+        for (final s in sessions) Padding(padding: const EdgeInsets.only(bottom: 12), child: Material(color: panel, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => open(s), borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 62, height: 82, child: Artwork(coverFor(s.title).art))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), Text('${s.character} · ${s.activeBranch}', style: const TextStyle(color: muted, fontSize: 12)), const SizedBox(height: 8), const Text('Continue chapter →', style: TextStyle(color: lavender, fontSize: 12))]))]))))),
+        const SizedBox(height: 16), const DemoBadge(),
       ],
       if (tab == 2) CreateStoryForm(onCreate: start),
-      const SizedBox(height: 20), const Text('Original worlds. Endless possibilities.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
-    ])))), bottomNavigationBar: NavigationBar(selectedIndex: tab, onDestinationSelected: (i) => setState(() => tab = i), destinations: const [NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Discover'), NavigationDestination(icon: Icon(Icons.auto_stories_outlined), label: 'My stories'), NavigationDestination(icon: Icon(Icons.add_circle_outline), label: 'Create')]));
+    ])))), bottomNavigationBar: DecoratedBox(decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: NavigationBar(height: 68, selectedIndex: tab, onDestinationSelected: (i) => setState(() => tab = i), destinations: const [NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Discover'), NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'My stories'), NavigationDestination(icon: Icon(Icons.edit_square), label: 'Create')])));
   }
 }
 
-class DemoBadge extends StatelessWidget {
-  const DemoBadge({super.key});
-  @override
-  Widget build(BuildContext context) => const Row(children: [Icon(Icons.science_outlined, size: 16, color: lavender), SizedBox(width: 6), Flexible(child: Text('Demo mode · scripted replies · session-only saves', style: TextStyle(color: lavender, fontSize: 12)))]);
-}
-class StoryCard extends StatelessWidget {
-  const StoryCard({super.key, required this.title, required this.genre, required this.description, required this.icon, required this.onTap});
-  final String title, genre, description;
-  final IconData icon;
+class HeroCover extends StatelessWidget {
+  const HeroCover({super.key, required this.story, required this.onTap});
+  final StoryCover story;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Card(clipBehavior: Clip.antiAlias, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), child: InkWell(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Container(height: 170, width: double.infinity, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF353367), Color(0xFF171D35)], begin: Alignment.topLeft, end: Alignment.bottomRight)), child: Stack(children: [Positioned(right: 24, top: 14, child: Icon(icon, size: 130, color: lavender.withValues(alpha: .45))), Positioned(left: 20, bottom: 20, child: Chip(label: Text(genre), backgroundColor: ink))])),
-    Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text(description, style: const TextStyle(color: Colors.white60)), const SizedBox(height: 16), const Row(children: [Text('Begin your story', style: TextStyle(color: lavender, fontWeight: FontWeight.w700)), SizedBox(width: 8), Icon(Icons.arrow_forward, size: 18, color: lavender)])])),
-  ])));
+  Widget build(BuildContext context) => Semantics(button: true, label: 'Begin ${story.title}', child: Material(borderRadius: BorderRadius.circular(18), clipBehavior: Clip.antiAlias, child: InkWell(onTap: onTap, child: SizedBox(height: 300, child: Stack(fit: StackFit.expand, children: [Artwork(story.art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: [0, .45, 1], colors: [Colors.transparent, Color(0x33000000), Color(0xF20D0E10)]))),
+    Positioned(top: 16, left: 16, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: lavender, borderRadius: BorderRadius.circular(6)), child: const Text('FEATURED WORLD', style: TextStyle(color: ink, fontSize: 9, letterSpacing: 1.2, fontWeight: FontWeight.w800)))),
+    Positioned(bottom: 18, left: 18, right: 18, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(story.tag, style: const TextStyle(color: lavender, fontSize: 9, letterSpacing: 1.4)), const SizedBox(height: 7), Text(story.title, style: const TextStyle(fontSize: 25, height: 1.1, fontWeight: FontWeight.w800)), const SizedBox(height: 7), Text(story.description, style: const TextStyle(color: Color(0xFFCBD0D6), fontSize: 12)), const SizedBox(height: 15), const Row(children: [Text('Enter this world', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)), SizedBox(width: 8), Icon(Icons.arrow_forward, size: 17, color: lavender)])])),
+  ])))));
 }
+class PosterCover extends StatelessWidget {
+  const PosterCover({super.key, required this.story, required this.onTap});
+  final StoryCover story;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    AspectRatio(aspectRatio: .78, child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Artwork(story.art))), const SizedBox(height: 10),
+    Text(story.genre.toUpperCase(), style: const TextStyle(color: lavender, fontSize: 9, letterSpacing: 1.2)), const SizedBox(height: 5), Text(story.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.25)), const SizedBox(height: 5), Text(story.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 11, height: 1.4)),
+  ]));
+}
+
 class CreateStoryForm extends StatefulWidget {
   const CreateStoryForm({super.key, required this.onCreate});
   final Future<void> Function(String) onCreate;
@@ -111,10 +156,12 @@ class _CreateStoryFormState extends State<CreateStoryForm> {
   void dispose() { title.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Icon(Icons.draw_outlined, size: 70, color: lavender), const SizedBox(height: 24),
+    const Text('THE CREATOR STUDIO', style: TextStyle(color: lavender, letterSpacing: 2, fontSize: 10)), const SizedBox(height: 10), const Text('A world only you\ncould imagine.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.15)), const SizedBox(height: 12), const Text('Give your next adventure a name. Then find the person who will share it.', style: TextStyle(color: muted, height: 1.5)), const SizedBox(height: 24),
+    ClipRRect(borderRadius: BorderRadius.circular(14), child: const SizedBox(height: 160, width: double.infinity, child: Artwork('assets/art/lantern.png'))), const SizedBox(height: 24),
+    const Text('01 / STORY PROFILE', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 1.5)), const SizedBox(height: 14),
     TextField(controller: title, maxLength: 80, decoration: InputDecoration(labelText: 'Story title', hintText: 'The city above the clouds', errorText: error)), const SizedBox(height: 16),
-    const Text('This prototype uses the academy opening for every title. Custom world generation will be connected later.', style: TextStyle(color: Colors.white60)), const SizedBox(height: 24),
-    FilledButton.icon(onPressed: () { if (title.text.trim().isEmpty) { setState(() => error = 'Give your story a name'); return; } setState(() => error = null); widget.onCreate(title.text.trim()); }, icon: const Icon(Icons.auto_awesome), label: const Text('Choose companion')),
+    const Text('Preview creation uses a prepared opening. Custom world generation will be available when the backend is connected.', style: TextStyle(color: muted, fontSize: 12, height: 1.5)), const SizedBox(height: 24),
+    SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () { if (title.text.trim().isEmpty) { setState(() => error = 'Give your story a name'); return; } setState(() => error = null); widget.onCreate(title.text.trim()); }, icon: const Icon(Icons.arrow_forward, size: 18), label: const Text('Choose companion'))), const SizedBox(height: 20), const DemoBadge(),
   ]);
 }
 
@@ -127,6 +174,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final input = TextEditingController();
   final scroll = ScrollController();
+  double textSize = 17;
   @override
   void initState() { super.initState(); widget.session.addListener(refresh); }
   void refresh() { if (mounted) setState(() {}); }
@@ -136,25 +184,32 @@ class _ChatScreenState extends State<ChatScreen> {
     widget.session.send(choice ?? input.text); input.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) { if (scroll.hasClients) scroll.animateTo(scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut); });
   }
-  Future<void> memories() async {
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (context) => MemorySheet(session: widget.session));
-  }
+  Future<void> memories() async { await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: ink, builder: (context) => MemorySheet(session: widget.session)); }
   Future<void> branches() async {
-    await showModalBottomSheet<void>(context: context, builder: (context) => SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Text('Story branches', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 12), for (final name in widget.session.branches.keys) ListTile(title: Text(name), trailing: name == widget.session.activeBranch ? const Icon(Icons.check, color: lavender) : null, onTap: () { widget.session.selectBranch(name); Navigator.pop(context); }), FilledButton.icon(onPressed: () { widget.session.fork(); Navigator.pop(context); }, icon: const Icon(Icons.call_split), label: const Text('Branch from here'))]))));
+    await showModalBottomSheet<void>(context: context, backgroundColor: ink, isScrollControlled: true, builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Choose a timeline', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('A new branch keeps the original transcript intact.', style: TextStyle(color: muted)), const SizedBox(height: 18), for (final name in widget.session.branches.keys) ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.alt_route, color: lavender), title: Text(name), trailing: name == widget.session.activeBranch ? const Icon(Icons.check, color: lavender) : null, onTap: () { widget.session.selectBranch(name); Navigator.pop(context); }), const SizedBox(height: 14), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () { widget.session.fork(); Navigator.pop(context); }, icon: const Icon(Icons.call_split), label: const Text('Branch from here')))])))));
   }
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
-    return Scaffold(appBar: AppBar(title: Text(s.title, style: const TextStyle(fontSize: 16)), actions: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.psychology_outlined)), IconButton(tooltip: 'Branches', onPressed: branches, icon: const Icon(Icons.call_split))]), body: SafeArea(top: false, child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: Column(children: [
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), child: Column(children: [const DemoBadge(), const SizedBox(height: 8), Row(children: [const Icon(Icons.circle, size: 7, color: lavender), const SizedBox(width: 6), Text('${s.character} · ${s.activeBranch}', style: const TextStyle(color: Colors.white60, fontSize: 12))])])),
-      Expanded(child: ListView(controller: scroll, padding: const EdgeInsets.all(20), children: [for (final turn in s.turns) Align(alignment: turn.speaker == 'You' ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(18), constraints: const BoxConstraints(maxWidth: 540), decoration: BoxDecoration(color: turn.speaker == 'You' ? const Color(0xFF353052) : panel, borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(turn.speaker, style: const TextStyle(color: lavender, fontWeight: FontWeight.bold, fontSize: 12)), const SizedBox(height: 8), Text(turn.text, style: const TextStyle(fontSize: 16, height: 1.5))]))),
-        Wrap(spacing: 8, runSpacing: 8, children: [for (final choice in ['Examine the key', 'Can I trust you?', 'Follow the chime']) ActionChip(label: Text(choice), onPressed: () => send(choice))]),
-      ])),
-      Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(hintText: 'What do you do next?', counterText: ''), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: send, icon: const Icon(Icons.arrow_upward))])),
-    ])))));
+    return Scaffold(appBar: AppBar(titleSpacing: 0, title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(s.activeBranch, style: const TextStyle(color: muted, fontSize: 10))]), actions: [IconButton(tooltip: 'Reading size', onPressed: () => setState(() => textSize = textSize == 17 ? 20 : 17), icon: const Icon(Icons.text_fields, size: 20)), PopupMenuButton<String>(tooltip: 'Story controls', onSelected: (value) { if (value == 'memory') memories(); if (value == 'branch') branches(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'memory', child: Text('Memories & summary')), PopupMenuItem(value: 'branch', child: Text('Story branches'))])]),
+      body: SafeArea(top: false, child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: Column(children: [
+        const Divider(height: 1),
+        Expanded(child: ListView(controller: scroll, children: [
+          SizedBox(height: 230, child: Stack(fit: StackFit.expand, children: [Artwork(coverFor(s.title).art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xEE0D0E10)]))), const Positioned(bottom: 20, left: 22, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('CHAPTER 01', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)), SizedBox(height: 6), Text('The first encounter', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))]))])),
+          Padding(padding: const EdgeInsets.fromLTRB(22, 8, 22, 24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const DemoBadge(), const SizedBox(height: 24),
+            for (final turn in s.turns) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)]]), const SizedBox(height: 12),
+              SelectableText(turn.text, style: TextStyle(fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
+            ])),
+            const Divider(), const SizedBox(height: 18), const Text('WHERE DOES YOUR STORY GO?', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 12),
+            for (final choice in ['Examine the key', 'Can I trust you?', 'Follow the chime']) Padding(padding: const EdgeInsets.only(bottom: 8), child: Material(color: panel, borderRadius: BorderRadius.circular(10), child: InkWell(onTap: () => send(choice), borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Icon(Icons.subdirectory_arrow_right, size: 17, color: lavender), const SizedBox(width: 10), Expanded(child: Text(choice, style: const TextStyle(fontSize: 13))), const Icon(Icons.arrow_upward, size: 15, color: muted)]))))),
+          ])),
+        ])),
+        Container(decoration: const BoxDecoration(color: ink, border: Border(top: BorderSide(color: line))), padding: const EdgeInsets.fromLTRB(12, 10, 12, 10), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.auto_stories_outlined, color: muted, size: 20)), Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(hintText: 'Write your next move…', counterText: '', isDense: true), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: send, icon: const Icon(Icons.arrow_upward, size: 21))])),
+      ])))));
   }
 }
-
 class MemorySheet extends StatefulWidget {
   const MemorySheet({super.key, required this.session});
   final StorySession session;

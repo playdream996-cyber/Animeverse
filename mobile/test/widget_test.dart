@@ -5,17 +5,20 @@ import 'package:animeverse/main.dart';
 void main() {
   testWidgets('reader can choose a companion and send an action', (tester) async {
     await tester.pumpWidget(const AnimeverseApp());
-    expect(find.text('Step into another life.'), findsOneWidget);
-    await tester.ensureVisible(find.text('The Midnight Academy'));
+    expect(find.text('Your next chapter\nstarts here.'), findsOneWidget);
+    await tester.ensureVisible(find.text('The Midnight Academy').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('The Midnight Academy'));
+    await tester.tap(find.text('The Midnight Academy').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aira'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Examine the key'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Examine the key'));
+
     await tester.pumpAndSettle();
     expect(find.text('You'), findsOneWidget);
-    expect(find.textContaining('matching lock'), findsOneWidget);
+    expect(find.textContaining('matching lock', findRichText: true), findsOneWidget);
   });
   testWidgets('small screen renders and empty story titles show validation', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
