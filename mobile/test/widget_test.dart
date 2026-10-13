@@ -18,6 +18,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Examine the key'));
 
+    await tester.pump();
+    expect(find.text('Aira is replying…'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 550));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(find.text('Aira is writing…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
     expect(find.text('You'), findsOneWidget);
     expect(find.textContaining('matching lock', findRichText: true), findsOneWidget);

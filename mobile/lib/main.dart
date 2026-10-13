@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'story_session.dart';
+import 'demo/temporary_story_catalog.dart';
 
 const ink = Color(0xFF0D0E10);
 const panel = Color(0xFF191A1E);
@@ -64,8 +65,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
   String genre = 'All';
   final search = TextEditingController();
   final List<StorySession> sessions = [];
+  static const testStoriesEnabled = bool.fromEnvironment('ANIMEVERSE_DEMO_CATALOG', defaultValue: true);
+  final temporaryCatalog = TemporaryStoryCatalog();
+  bool loadingCatalog = false;
+  List<StoryCover> get libraryCovers => [...covers, if (testStoriesEnabled)
+    ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag))];
+  Future<void> refreshCatalog() async {
+    if (loadingCatalog) return;
+    setState(() => loadingCatalog = true);
+    await temporaryCatalog.refresh();
+    if (mounted) {
+      setState(() => loadingCatalog = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+        temporaryCatalog.offline ? 'Manga API unavailable · offline test stories kept' : 'Manga references updated · original test stories ready')));
+    }
+  }
   @override
-  void dispose() { search.dispose(); for (final s in sessions) { s.dispose(); } super.dispose(); }
+  void dispose() { temporaryCatalog.dispose(); search.dispose(); for (final s in sessions) { s.dispose(); } super.dispose(); }
   Future<void> start(String title) async {
     final companion = await showModalBottomSheet<String>(context: context, isScrollControlled: true, backgroundColor: ink,
       builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -80,7 +96,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         const SizedBox(height: 12), const DemoBadge(),
       ])))));
     if (companion == null || !mounted) return;
-    final session = StorySession(title, companion);
+    final candidates = temporaryCatalog.stories.where((s) => s.title == title);
+    final session = StorySession(title, companion,
+      story: testStoriesEnabled && candidates.isNotEmpty ? candidates.first : null);
     setState(() => sessions.add(session));
     await open(session);
   }
@@ -91,7 +109,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final query = search.text.trim().toLowerCase();
-    final visible = covers.where((s) => (genre == 'All' || genre == s.genre) && s.title.toLowerCase().contains(query)).toList();
+    final visible = libraryCovers.where((s) => (genre == 'All' || genre == s.genre) && s.title.toLowerCase().contains(query)).toList();
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
       Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. AI, accounts and permanent saves are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
       const SizedBox(height: 24),
@@ -101,6 +119,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Search stories, worlds, possibilities', prefixIcon: Icon(Icons.search, size: 20), isDense: true)), const SizedBox(height: 14),
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, showCheckmark: false, onSelected: (_) => setState(() => genre = g), selectedColor: lavender, labelStyle: TextStyle(color: genre == g ? ink : muted, fontSize: 12), side: const BorderSide(color: line)))])),
         const SizedBox(height: 16),
+        if (testStoriesEnabled) Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+          const Expanded(child: Text('5 temporary original adventures', style: TextStyle(color: muted, fontSize: 12))),
+          TextButton(onPressed: loadingCatalog ? null : refreshCatalog, child: Text(loadingCatalog ? 'Loading…' : 'Refresh manga references')),
+        ])),
         if (visible.isNotEmpty) HeroCover(story: visible.first, onTap: () => start(visible.first.title)),
         if (visible.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Text('No stories found. Try another title or genre.')),
         const SizedBox(height: 26), const Row(children: [Expanded(child: Text('Find your next obsession', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))), SizedBox(width: 12), Icon(Icons.arrow_forward, size: 18, color: muted)]), const SizedBox(height: 14),
@@ -177,15 +199,27 @@ class _ChatScreenState extends State<ChatScreen> {
   double textSize = 17;
   @override
   void initState() { super.initState(); widget.session.addListener(refresh); }
-  void refresh() { if (mounted) setState(() {}); }
+  void refresh() {
+    if (!mounted) return;
+    final follow = scroll.hasClients &&
+        scroll.position.maxScrollExtent - scroll.offset < 100;
+    setState(() {});
+    if (follow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && scroll.hasClients) scroll.jumpTo(scroll.position.maxScrollExtent);
+      });
+    }
+  }
   @override
   void dispose() { widget.session.removeListener(refresh); input.dispose(); scroll.dispose(); super.dispose(); }
   void send([String? choice]) {
+    if (widget.session.isReplying) return;
     widget.session.send(choice ?? input.text); input.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) { if (scroll.hasClients) scroll.animateTo(scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut); });
   }
   Future<void> memories() async { await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: ink, builder: (context) => MemorySheet(session: widget.session)); }
   Future<void> branches() async {
+    if (widget.session.isReplying) return;
     await showModalBottomSheet<void>(context: context, backgroundColor: ink, isScrollControlled: true, builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Choose a timeline', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('A new branch keeps the original transcript intact.', style: TextStyle(color: muted)), const SizedBox(height: 18), for (final name in widget.session.branches.keys) ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.alt_route, color: lavender), title: Text(name), trailing: name == widget.session.activeBranch ? const Icon(Icons.check, color: lavender) : null, onTap: () { widget.session.selectBranch(name); Navigator.pop(context); }), const SizedBox(height: 14), SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () { widget.session.fork(); Navigator.pop(context); }, icon: const Icon(Icons.call_split), label: const Text('Branch from here')))])))));
   }
   @override
@@ -198,15 +232,32 @@ class _ChatScreenState extends State<ChatScreen> {
           SizedBox(height: 230, child: Stack(fit: StackFit.expand, children: [Artwork(coverFor(s.title).art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xEE0D0E10)]))), const Positioned(bottom: 20, left: 22, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('CHAPTER 01', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)), SizedBox(height: 6), Text('The first encounter', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))]))])),
           Padding(padding: const EdgeInsets.fromLTRB(22, 8, 22, 24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const DemoBadge(), const SizedBox(height: 24),
-            for (final turn in s.turns) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final turn in [...s.turns, if (s.isReplying && s.visibleReply.isNotEmpty) Turn(s.character, s.visibleReply)]) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)]]), const SizedBox(height: 12),
               SelectableText(turn.text, style: TextStyle(fontFamily: 'Lora', fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
             ])),
+            if (s.isReplying && s.visibleReply.isNotEmpty) const ReplyCursor(),
+            if (s.story != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(
+              'Original test story · foundation: ${s.story!.foundation}
+${s.story!.referenceTitle == null ? 'Manga reference not fetched' : 'Manga reference: ${s.story!.referenceTitle}'}',
+              style: const TextStyle(color: muted, fontSize: 10))),
+            if (s.replyStopped) const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Reply stopped', style: TextStyle(color: muted, fontSize: 12))),
+            if (s.isReplying) Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Row(children: [
+                const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: lavender)),
+                const SizedBox(width: 10),
+                Expanded(child: Text(s.visibleReply.isEmpty ? '${s.character} is replying…' : '${s.character} is writing…', style: const TextStyle(color: muted, fontSize: 12))),
+                TextButton(onPressed: s.stopReply, child: const Text('Stop')),
+              ]),
+            ),
+            if (!s.isReplying) ...[
             const Divider(), const SizedBox(height: 18), const Text('WHERE DOES YOUR STORY GO?', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 12),
-            for (final choice in ['Examine the key', 'Can I trust you?', 'Follow the chime']) Padding(padding: const EdgeInsets.only(bottom: 8), child: Material(color: panel, borderRadius: BorderRadius.circular(10), child: InkWell(onTap: () => send(choice), borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Icon(Icons.subdirectory_arrow_right, size: 17, color: lavender), const SizedBox(width: 10), Expanded(child: Text(choice, style: const TextStyle(fontSize: 13))), const Icon(Icons.arrow_upward, size: 15, color: muted)]))))),
+            for (final choice in s.choices) Padding(padding: const EdgeInsets.only(bottom: 8), child: Material(color: panel, borderRadius: BorderRadius.circular(10), child: InkWell(onTap: () => send(choice), borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Icon(Icons.subdirectory_arrow_right, size: 17, color: lavender), const SizedBox(width: 10), Expanded(child: Text(choice, style: const TextStyle(fontSize: 13))), const Icon(Icons.arrow_upward, size: 15, color: muted)]))))),
+            ],
           ])),
         ])),
-        Container(decoration: const BoxDecoration(color: ink, border: Border(top: BorderSide(color: line))), padding: const EdgeInsets.fromLTRB(12, 10, 12, 10), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.auto_stories_outlined, color: muted, size: 20)), Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(hintText: 'Write your next move…', counterText: '', isDense: true), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: send, icon: const Icon(Icons.arrow_upward, size: 21))])),
+        Container(decoration: const BoxDecoration(color: ink, border: Border(top: BorderSide(color: line))), padding: const EdgeInsets.fromLTRB(12, 10, 12, 10), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.auto_stories_outlined, color: muted, size: 20)), Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(hintText: 'Write your next move…', counterText: '', isDense: true), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: s.isReplying ? null : send, icon: const Icon(Icons.arrow_upward, size: 21))])),
       ])))));
   }
 }
@@ -231,4 +282,20 @@ class _MemorySheetState extends State<MemorySheet> {
     TextField(controller: memory, maxLength: 250, decoration: const InputDecoration(hintText: 'Add a fact to remember')),
     FilledButton(onPressed: () { setState(() => widget.session.addMemory(memory.text)); memory.clear(); }, child: const Text('Pin memory')),
   ]))));
+}
+
+class ReplyCursor extends StatefulWidget {
+  const ReplyCursor({super.key});
+  @override
+  State<ReplyCursor> createState() => _ReplyCursorState();
+}
+class _ReplyCursorState extends State<ReplyCursor> with SingleTickerProviderStateMixin {
+  late final AnimationController controller = AnimationController(
+    vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
+  @override
+  void dispose() { controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => FadeTransition(opacity: controller,
+    child: const Padding(padding: EdgeInsets.only(bottom: 12),
+      child: Text('▍', style: TextStyle(color: lavender))));
 }
