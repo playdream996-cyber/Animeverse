@@ -15,7 +15,7 @@ class AnimeverseApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Animeverse', debugShowCheckedModeBanner: false,
     theme: ThemeData(brightness: Brightness.dark, useMaterial3: true,
-      scaffoldBackgroundColor: ink,
+      scaffoldBackgroundColor: ink, fontFamily: 'Inter',
       colorScheme: ColorScheme.fromSeed(seedColor: lavender, brightness: Brightness.dark, primary: lavender, onPrimary: ink, surface: panel),
       appBarTheme: const AppBarTheme(backgroundColor: ink, surfaceTintColor: Colors.transparent),
       dividerColor: line,
@@ -200,7 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
             const DemoBadge(), const SizedBox(height: 24),
             for (final turn in s.turns) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)]]), const SizedBox(height: 12),
-              SelectableText(turn.text, style: TextStyle(fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
+              SelectableText(turn.text, style: TextStyle(fontFamily: 'Lora', fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
             ])),
             const Divider(), const SizedBox(height: 18), const Text('WHERE DOES YOUR STORY GO?', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 12),
             for (final choice in ['Examine the key', 'Can I trust you?', 'Follow the chime']) Padding(padding: const EdgeInsets.only(bottom: 8), child: Material(color: panel, borderRadius: BorderRadius.circular(10), child: InkWell(onTap: () => send(choice), borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Icon(Icons.subdirectory_arrow_right, size: 17, color: lavender), const SizedBox(width: 10), Expanded(child: Text(choice, style: const TextStyle(fontSize: 13))), const Icon(Icons.arrow_upward, size: 15, color: muted)]))))),

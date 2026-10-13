@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:animeverse/main.dart';
+import 'load_fonts.dart';
 
 void main() {
+  setUpAll(loadPreviewFonts);
   testWidgets('reader can choose a companion and send an action', (tester) async {
     await tester.pumpWidget(const AnimeverseApp());
     expect(find.text('Your next chapter\nstarts here.'), findsOneWidget);
