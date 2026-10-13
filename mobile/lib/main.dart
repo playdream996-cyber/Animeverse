@@ -238,8 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ])),
             if (s.isReplying && s.visibleReply.isNotEmpty) const ReplyCursor(),
             if (s.story != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(
-              'Original test story · foundation: ${s.story!.foundation}
-${s.story!.referenceTitle == null ? 'Manga reference not fetched' : 'Manga reference: ${s.story!.referenceTitle}'}',
+              'Original test story · foundation: ${s.story!.foundation}\n${s.story!.referenceTitle == null ? 'Manga reference not fetched' : 'Manga reference: ${s.story!.referenceTitle}'}',
               style: const TextStyle(color: muted, fontSize: 10))),
             if (s.replyStopped) const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Reply stopped', style: TextStyle(color: muted, fontSize: 12))),
             if (s.isReplying) Padding(
