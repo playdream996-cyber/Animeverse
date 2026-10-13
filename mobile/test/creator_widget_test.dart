@@ -13,13 +13,16 @@ void main() {
     await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: CreatorStudio(library: p, draft: d, onPlay: (_) async {})));
     Future<void> enter(String label, String value) async {
       final f = find.widgetWithText(TextField, label);
-      await tester.ensureVisible(f); await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(f, 300, scrollable:
+        find.descendant(of: find.byType(CreatorStudio), matching: find.byType(Scrollable)).first);
+      await tester.pumpAndSettle();
       await tester.enterText(f, value);
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
     }
     Future<void> next() async {
-      await tester.ensureVisible(find.text('Continue'));
+      await tester.scrollUntilVisible(find.text('Continue'), 300, scrollable:
+        find.descendant(of: find.byType(CreatorStudio), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue')); await tester.pumpAndSettle();
     }
@@ -31,10 +34,12 @@ void main() {
     await enter('Main goal', 'Find the lighthouse');
     await next();
     expect(d.opening, contains('Find the lighthouse'));
-    await tester.ensureVisible(find.text('Public'));
+    await tester.scrollUntilVisible(find.text('Public'), 300, scrollable:
+      find.descendant(of: find.byType(CreatorStudio), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
     await tester.tap(find.text('Public')); await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Add to local showcase'));
+    await tester.scrollUntilVisible(find.text('Add to local showcase'), 300, scrollable:
+      find.descendant(of: find.byType(CreatorStudio), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
     await tester.tap(find.text('Add to local showcase')); await tester.pumpAndSettle();
     expect(p.showcase.single.story.title, 'Cloudborne');

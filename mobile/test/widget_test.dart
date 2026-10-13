@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:animeverse/main.dart';
 import 'load_fonts.dart';
+import 'package:animeverse/creator/creator_studio.dart';
 
 void main() {
   setUpAll(loadPreviewFonts);
@@ -48,7 +49,8 @@ void main() {
       await tester.pumpAndSettle();
     await tester.tap(find.text('Create story'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Continue'));
+    await tester.scrollUntilVisible(find.text('Continue'), 300, scrollable:
+      find.descendant(of: find.byType(CreatorStudio), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));

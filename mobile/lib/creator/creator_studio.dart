@@ -13,6 +13,7 @@ class CreatorStudio extends StatefulWidget {
 }
 class _CreatorStudioState extends State<CreatorStudio> {
   int step = 0;
+  final scroll = ScrollController();
   bool saving = false;
   String? error;
   late final title = TextEditingController(text: widget.draft.title);
@@ -26,12 +27,20 @@ class _CreatorStudioState extends State<CreatorStudio> {
   @override
   void dispose() {
     for (final c in [title, premise, world, role, goal, opening]) { c.dispose(); }
+    scroll.dispose();
     super.dispose();
   }
   void sync() {
     d.title = title.text; d.premise = premise.text; d.world = world.text;
     d.role = role.text; d.goal = goal.text; d.opening = opening.text;
     widget.library.changed();
+  }
+  void setStep(int value) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() { step = value; error = null; });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && scroll.hasClients) scroll.jumpTo(scroll.position.minScrollExtent);
+    });
   }
   void next() {
     sync();
@@ -45,7 +54,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
           '${d.character} arrives with a question. “Where should we begin?”';
       sync();
     }
-    setState(() { error = null; step++; });
+    setStep(step + 1);
   }
   Future<void> save({bool edition = false}) async {
     sync();
@@ -75,7 +84,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
     appBar: AppBar(title: const Text('Creator studio', style: TextStyle(fontSize: 16)),
       actions: [TextButton(onPressed: saving ? null : () => save(), child: const Text('Save draft'))]),
     body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
-      child: ListView(padding: const EdgeInsets.all(22), children: [
+      child: ListView(controller: scroll, padding: const EdgeInsets.all(22), children: [
         Text('STEP ${step + 1} OF 3', style: const TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)),
         const SizedBox(height: 12),
         LinearProgressIndicator(value: (step + 1) / 3, color: lavender, backgroundColor: line),
@@ -140,7 +149,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
           child: Text(error!, style: const TextStyle(color: Colors.orangeAccent))),
         const SizedBox(height: 22),
         Row(children: [
-          if (step > 0) TextButton(onPressed: saving ? null : () => setState(() => step--), child: const Text('Back')),
+          if (step > 0) TextButton(onPressed: saving ? null : () => setStep(step - 1), child: const Text('Back')),
           const Spacer(),
           FilledButton(onPressed: saving ? null : step < 2 ? next : () => save(edition: true),
             child: Text(saving ? 'Saving…' : step < 2 ? 'Continue' :
