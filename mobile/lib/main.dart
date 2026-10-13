@@ -167,7 +167,7 @@ class _MemorySheetState extends State<MemorySheet> {
   @override
   void dispose() { summary.dispose(); memory.dispose(); super.dispose(); }
   @override
-  Widget build(BuildContext context) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewInsetsOf(context).bottom), child: SizedBox(height: MediaQuery.sizeOf(context).height * .65, child: ListView(children: [
+  Widget build(BuildContext context) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewInsetsOf(context).bottom), child: SizedBox(height: (MediaQuery.sizeOf(context).height - MediaQuery.viewInsetsOf(context).bottom - 100).clamp(100.0, MediaQuery.sizeOf(context).height * .65), child: ListView(children: [
     const Text('Your story remembers', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('Manual demo notes. AI memory is not connected.', style: TextStyle(color: Colors.white60)), const SizedBox(height: 20),
     TextField(controller: summary, minLines: 3, maxLines: 6, maxLength: 2000, decoration: const InputDecoration(labelText: 'Story summary')),
     Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () { widget.session.updateSummary(summary.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Summary saved for this session'))); }, child: const Text('Save summary'))),
