@@ -10,7 +10,10 @@ void main() {
   testWidgets('creator completes guided flow and saves a public local edition', (tester) async {
     final p = ProjectLibrary(MemoryProjectStorage());
     final d = p.newDraft();
-    await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: CreatorStudio(library: p, draft: d, onPlay: (_) async {})));
+    await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: const Scaffold()));
+    final context = tester.element(find.byType(Scaffold));
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreatorStudio(library: p, draft: d, onPlay: (_) async {})));
+    await tester.pumpAndSettle();
     Future<void> enter(String label, String value) async {
       final f = find.widgetWithText(TextField, label);
       await tester.scrollUntilVisible(f, 300, scrollable:
