@@ -1,0 +1,41 @@
+name: Mobile frontend
+on:
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate standard Flutter platform wrappers
+        run: |
+          flutter create --project-name animeverse --platforms=android,web /tmp/animeverse-platform
+          cp -r /tmp/animeverse-platform/android mobile/
+          cp -r /tmp/animeverse-platform/web mobile/
+          cp /tmp/animeverse-platform/.metadata mobile/
+      - run: flutter pub get
+        working-directory: mobile
+      - run: flutter analyze
+        working-directory: mobile
+      - run: flutter test
+        working-directory: mobile
+      - run: flutter build apk --debug
+        working-directory: mobile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: animeverse-demo-apk
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
