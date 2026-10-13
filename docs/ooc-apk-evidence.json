@@ -1,0 +1,166 @@
+{
+  "sha256": "3b9639e4114b0d88edeb3de043ad4a09a6f0ad4369c58bb7f3d52efdf905c977",
+  "method": "static; no app execution",
+  "entry_count": 1262,
+  "dex_files": [
+    "classes.dex",
+    "classes2.dex",
+    "classes3.dex",
+    "classes4.dex",
+    "classes5.dex",
+    "classes6.dex"
+  ],
+  "native_library_count": 0,
+  "recognized_model_files": [],
+  "hermes": {
+    "version": 96,
+    "bundle_bytes": 17380216,
+    "string_count": 91282,
+    "strings_with_decode_replacements": 4,
+    "evidence": [
+      {
+        "id": 5625,
+        "value": "/snapshot/apply"
+      },
+      {
+        "id": 5864,
+        "value": "/branch"
+      },
+      {
+        "id": 5952,
+        "value": "/ooc-gen/situation-images/generate"
+      },
+      {
+        "id": 6269,
+        "value": "/ooc-gen/v3/chat-models"
+      },
+      {
+        "id": 6272,
+        "value": "/ooc-gen/v3/chat-models/errors/config"
+      },
+      {
+        "id": 6305,
+        "value": "/summaries"
+      },
+      {
+        "id": 6333,
+        "value": "/summaries/version"
+      },
+      {
+        "id": 26915,
+        "value": "EndingCollectionScreen"
+      },
+      {
+        "id": 26919,
+        "value": "EndingDetailScreen"
+      },
+      {
+        "id": 35643,
+        "value": "chatV3ControllerBranchChat"
+      },
+      {
+        "id": 37015,
+        "value": "ChatModelSelectBottomSheet"
+      },
+      {
+        "id": 39317,
+        "value": "regenerateSituationImage"
+      },
+      {
+        "id": 41246,
+        "value": "chatV3ControllerCreateSummary"
+      },
+      {
+        "id": 53010,
+        "value": "chatV3ControllerUpdateLastSummary"
+      },
+      {
+        "id": 53012,
+        "value": "chatV3ControllerDeleteSummary"
+      },
+      {
+        "id": 56173,
+        "value": "useCreateBranch"
+      },
+      {
+        "id": 56204,
+        "value": "useChatModelErrorsPolling"
+      },
+      {
+        "id": 56951,
+        "value": "chatV3ControllerApplyReplacementModel"
+      },
+      {
+        "id": 56955,
+        "value": "chatV3ControllerApplySnapshot"
+      },
+      {
+        "id": 56978,
+        "value": "chatV3ControllerGetSummariesVersion"
+      },
+      {
+        "id": 56980,
+        "value": "chatV3ControllerReadSummaries"
+      },
+      {
+        "id": 56989,
+        "value": "chatV3ControllerUpdateSummary"
+      },
+      {
+        "id": 63782,
+        "value": "useStreamingState"
+      },
+      {
+        "id": 87508,
+        "value": "chatModel.maxOutput is required"
+      }
+    ]
+  },
+  "selected_modules": [
+    "com.android.billingclient:billing:8.3.0",
+    "com.appsflyer:af-android-sdk:6.17.5",
+    "com.facebook.hermes:hermes-android:0.14.1",
+    "com.facebook.react:react-android:0.83.5",
+    "com.google.firebase:firebase-messaging:25.0.1",
+    "io.sentry:sentry-android-core:8.55.0",
+    "io.sentry:sentry-android-ndk:8.55.0",
+    "io.sentry:sentry-android-replay:8.55.0",
+    "io.sentry:sentry-android:8.55.0",
+    "io.sentry:sentry-native-ndk:0.16.5",
+    "io.sentry:sentry:8.55.0"
+  ],
+  "manifest": {
+    "package": "com.newai.ooc",
+    "version_name": "0.1.23",
+    "version_code": "535",
+    "min_sdk": "24",
+    "target_sdk": "36",
+    "main_activity": "com.newai.ooc.MainActivity",
+    "permissions": [
+      "android.permission.ACCESS_ADSERVICES_AD_ID",
+      "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+      "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE",
+      "android.permission.ACCESS_ADSERVICES_TOPICS",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.ACCESS_WIFI_STATE",
+      "android.permission.CAMERA",
+      "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+      "android.permission.INTERNET",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.VIBRATE",
+      "android.permission.WAKE_LOCK",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "com.android.permission.GET_INSTALLED_APPS",
+      "com.android.vending.BILLING",
+      "com.google.android.c2dm.permission.RECEIVE",
+      "com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE",
+      "com.google.android.gms.permission.AD_ID",
+      "com.huawei.appmarket.service.commondata.permission.GET_COMMON_DATA",
+      "com.newai.ooc.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+      "com.samsung.android.mapsagent.permission.READ_APP_INFO"
+    ],
+    "allow_backup": "false",
+    "uses_cleartext_traffic": "false"
+  }
+}
