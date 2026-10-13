@@ -9,15 +9,18 @@ void main() {
     await tester.pumpWidget(const AnimeverseApp());
     expect(find.text('Your next chapter\nstarts here.'), findsOneWidget);
     await tester.ensureVisible(find.text('The Midnight Academy').first);
+      await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('The Midnight Academy').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Start adventure'));
+      await tester.pumpAndSettle();
     await tester.tap(find.text('Start adventure'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aira'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Examine the key'));
+      await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Examine the key'));
 
@@ -42,9 +45,11 @@ void main() {
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Create story'));
+      await tester.pumpAndSettle();
     await tester.tap(find.text('Create story'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Continue'));
+      await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();

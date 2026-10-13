@@ -13,10 +13,14 @@ void main() {
     await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: CreatorStudio(library: p, draft: d, onPlay: (_) async {})));
     Future<void> enter(String label, String value) async {
       final f = find.widgetWithText(TextField, label);
-      await tester.ensureVisible(f); await tester.enterText(f, value);
+      await tester.ensureVisible(f); await tester.pumpAndSettle();
+      await tester.enterText(f, value);
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
     }
     Future<void> next() async {
       await tester.ensureVisible(find.text('Continue'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Continue')); await tester.pumpAndSettle();
     }
     await enter('Story title', 'Cloudborne');
@@ -28,8 +32,10 @@ void main() {
     await next();
     expect(d.opening, contains('Find the lighthouse'));
     await tester.ensureVisible(find.text('Public'));
+      await tester.pumpAndSettle();
     await tester.tap(find.text('Public')); await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Add to local showcase'));
+      await tester.pumpAndSettle();
     await tester.tap(find.text('Add to local showcase')); await tester.pumpAndSettle();
     expect(p.showcase.single.story.title, 'Cloudborne');
     expect(tester.takeException(), isNull);
