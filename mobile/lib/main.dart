@@ -103,7 +103,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         const SizedBox(height: 16),
         if (visible.isNotEmpty) HeroCover(story: visible.first, onTap: () => start(visible.first.title)),
         if (visible.isEmpty) const Padding(padding: EdgeInsets.all(32), child: Text('No stories found. Try another title or genre.')),
-        const SizedBox(height: 26), const Row(children: [Text('Find your next obsession', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)), Spacer(), Icon(Icons.arrow_forward, size: 18, color: muted)]), const SizedBox(height: 14),
+        const SizedBox(height: 26), const Row(children: [Expanded(child: Text('Find your next obsession', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))), SizedBox(width: 12), Icon(Icons.arrow_forward, size: 18, color: muted)]), const SizedBox(height: 14),
         LayoutBuilder(builder: (context, constraints) {
           final count = constraints.maxWidth > 600 ? 3 : 2;
           final width = (constraints.maxWidth - 12 * (count - 1)) / count;
