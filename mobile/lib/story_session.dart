@@ -15,7 +15,6 @@ class StorySession extends ChangeNotifier {
   String activeBranch = 'Original';
   String summary = 'You arrived at the academy after dusk. Your companion recognized you and a mysterious silver key appeared.';
   final List<String> memories = ['You carry a silver key.', 'Your companion recognized you at the academy.'];
-  final Set<String> bookmarks = {};
   List<Turn> get turns => branches[activeBranch]!;
   void send(String text) {
     final clean = text.trim();
