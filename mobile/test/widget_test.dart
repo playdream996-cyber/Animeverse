@@ -6,6 +6,8 @@ void main() {
   testWidgets('reader can choose a companion and send an action', (tester) async {
     await tester.pumpWidget(const AnimeverseApp());
     expect(find.text('Step into another life.'), findsOneWidget);
+    await tester.ensureVisible(find.text('The Midnight Academy'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('The Midnight Academy'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aira'));
@@ -24,6 +26,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Choose companion'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Choose companion'));
     await tester.pumpAndSettle();
