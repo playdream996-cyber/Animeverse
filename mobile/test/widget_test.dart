@@ -15,7 +15,7 @@ void main() {
     expect(find.text('You'), findsOneWidget);
     expect(find.textContaining('matching lock'), findsOneWidget);
   });
-  testWidgets('small screen and larger text render without an exception', (tester) async {
+  testWidgets('small screen renders and empty story titles show validation', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
