@@ -1,0 +1,48 @@
+area,feature,ooc_evidence_type,source_or_identifier,animeverse_recommendation,current_gap,priority
+Modes,Story / Character split,D+V,S01,Separate navigation,Frontend partial,P0
+Discovery,Curated catalogue,V+A,V01,Published catalogue,Local fixtures,P0
+Discovery,Genre / hashtag discovery,D,S11,Search metadata,Title/genre local only,P0
+Discovery,Rankings / recommendations,A,storyControllerGetRanking,Measured ranking,Missing,P2
+Discovery,Creator following,D+A,S01,Following feed,Missing,P1
+Creation,Cover and short description,D,S04,Metadata editor,Limited,P0
+Creation,Default / custom instructions,D,S05,Guided editor,Backend generic prompts,P0
+Creation,AI-assisted drafting,D,S05,Reviewed draft,Contract only,P0
+Creation,Plot / dialogue examples,D,S05,Style examples,Guide only,P1
+Creation,Multiple starting scenarios,D,S06,Named starting sets,Missing,P1
+Creation,Player-facing guide,D,S06,Instructions separate from canon,Missing,P0
+Creation,Suggested actions,D,S06,Meaningful choices,Scripted,P0
+Creation,Bounded stats,D,S07,Typed rules,Missing,P1
+Creation,Stat-level prompts,D,S07,Threshold context,Missing,P1
+Creation,Situation media,D,S08,Stable asset selection,Three reused covers,P0
+Creation,Scoped triggered lore,D,S09,Lore activation,Missing,P1
+Creation,Draft storage,A,/ooc-api/story-drafts,Recoverable drafts,Missing,P0
+Publishing,Public visibility,D,S11,Review and publication,Missing,P0
+Publishing,Link-only visibility,D,S11,Unlisted access,Missing,P1
+Publishing,Private visibility,D,S11,Owner isolation,Backend CLI scope only,P0
+Publishing,Comments switch,D,S11,Community control,Missing,P1
+Publishing,Content rating,D,S11,Publication policy,Missing,P0
+Community,Likes / creator profiles,D+A,S01,Discovery trust,Missing,P1
+Community,Comments / pin / report,A,storyCommentControllerCreate,Community tools,Missing,P1
+Community,Blocking,A,You have no blocked creators yet,User controls,Missing,P0
+Play,Player avatar,D,S13,Identity scope,Companion picker only,P0
+Play,Loading / partial reply,A,appendChunkToStreamingMessage,Staged streaming,Simulated frontend,P0
+Play,Stop generation,A,handleStopStreaming,Cancellation,Timer stop only,P0
+Play,History / recent chats,A,RecentChatCarousel,Saved continuation,Mobile session-only,P0
+Play,Branch at any message,D+A,S02,Historical checkpoint fork,Current-state copies only,P1
+Play,Edit / delete message,D+A,S13,Repair state and summaries,Missing,P0
+Memory,Long-term / temporary / relationships / goals,D,S13,Separate scoped records,Manual notes/NoMemory,P0
+Memory,Global and title notes,D,S13,Explicit scope,Session notes only,P1
+Memory,Prompt layers / summaries,D,S12,Context assembly,Basic builder,P0
+Endings,Turn and stat prerequisites,D,S10,Deterministic evaluator,Phase/objective checks only,P0
+Endings,AND / OR conditions,D,S10,Rule DSL,Missing,P1
+Endings,Hints and epilogues,D,S10,Narrative closure,Generic ending contract,P1
+Endings,Collected rarity cards,D+A,S10,Versioned awards,Missing,P1
+Media,Optional generated scene image,D,S15,Separate image worker,Missing,P2
+Media,Image gallery,D,S15,Asset gallery,Missing,P1
+Convenience,Personal/creator commands,D+A,S02,Reusable actions,Missing,P2
+Convenience,Command hub,A,Slash Command Hub,Shared command catalogue,Missing,P2
+Economy,Basic Character free access,D,S01,Measured allowance,Missing,P1
+Economy,Credit expiry and consumption,D,S16,Transparent ledger,Missing,P1
+Economy,Certified-creator credit rewards,D,S16,Later incentive design,Missing,P2
+Economy,Creator milestones,D,S18,Creator feedback,Missing,P2
+Variants,Dice of Fate AI RPG,D+A,S02,Separate game mode,Missing,P2
