@@ -10,7 +10,12 @@ class Turn {
 
 class StorySession extends ChangeNotifier {
   StorySession(this.title, this.character, {this.story})
-      : branches = {'Original': [Turn(character, story?.opening ?? 'The lanterns go dark. A silver key appears in your hand. “You came back,” I whisper. “This time, we choose our own ending.”')]};
+      : branches = {'Original': [Turn(character, story?.opening ?? 'The lanterns go dark. A silver key appears in your hand. “You came back,” I whisper. “This time, we choose our own ending.”')]} {
+    if (story != null) {
+      summary = story!.opening;
+      memories.clear();
+    }
+  }
   final StoryDefinition? story;
   List<String> get choices => story?.choices ?? const ['Examine the key', 'Can I trust you?', 'Follow the chime'];
   final String title;

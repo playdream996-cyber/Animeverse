@@ -13,6 +13,8 @@ void main() {
     for (final story in demoStorySeeds) {
       final session = StorySession(story.title, story.character, story: story);
       expect(session.turns.first.text, story.opening);
+      expect(session.summary, story.opening);
+      expect(session.memories, isEmpty);
       session.send(story.choices.first);
       session.finishReply();
       expect(session.turns.last.text, story.responses.first);
