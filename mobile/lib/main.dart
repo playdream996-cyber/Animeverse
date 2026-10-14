@@ -129,6 +129,14 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag, definition: s)),
     ...project.showcase.map((w) => StoryCover(w.story.title, w.story.genre, w.story.description,
       w.story.art, w.story.character, 'LOCAL SHOWCASE · VERSION ${w.version}', definition: w.story))];
+  List<StoryCover> get bookmarkCovers {
+    final saved = {for (final s in libraryCovers) s.definition?.id ?? s.title: s};
+    for (final work in project.editions) {
+      final s = work.story;
+      saved[s.id] = StoryCover(s.title, s.genre, s.description, s.art, s.character, 'SAVED EDITION · VERSION ${work.version}', definition: s);
+    }
+    return saved.values.toList();
+  }
   Future<void> refreshCatalog() async {
     if (loadingCatalog) return;
     setState(() => loadingCatalog = true);
@@ -190,13 +198,16 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
       Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'Player settings', onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => PlayerSettings(library: project))), icon: const Icon(Icons.person_outline)), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. Replies are scripted. Stories and progress save on this device. Online accounts and sharing are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
       const SizedBox(height: 24),
+      if (project.saveError != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(project.saveError!, style: const TextStyle(color: Colors.orangeAccent)),
+        if (!project.readOnly) TextButton(onPressed: project.flush, child: const Text('Retry save')),
+      ]))),
       if (tab == 0) ...[
         const Text('YOUR STORY. YOUR RULES.', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2.4, fontWeight: FontWeight.w700)), const SizedBox(height: 8),
         const Text('Your next chapter\nstarts here.', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.12, letterSpacing: -.8)), const SizedBox(height: 20),
         TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(hintText: 'Search stories, worlds, possibilities', prefixIcon: Icon(Icons.search, size: 20), isDense: true)), const SizedBox(height: 14),
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [for (final g in ['All', 'Fantasy', 'Sci-fi', 'Adventure', 'Mystery', 'Romance', 'Horror']) Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(g), selected: genre == g, showCheckmark: false, onSelected: (_) => setState(() => genre = g), selectedColor: lavender, labelStyle: TextStyle(color: genre == g ? ink : muted, fontSize: 12), side: const BorderSide(color: line)))])),
         const SizedBox(height: 16),
-        if (project.saveError != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(project.saveError!, style: const TextStyle(color: Colors.orangeAccent))),
         if (testStoriesEnabled) Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
           const Expanded(child: Text('5 temporary original adventures', style: TextStyle(color: muted, fontSize: 12))),
           TextButton(onPressed: loadingCatalog ? null : refreshCatalog, child: Text(loadingCatalog ? 'Loading…' : 'Refresh manga references')),
@@ -212,7 +223,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         const SizedBox(height: 28), const DemoBadge(),
       ],
       if (tab == 1) ...[
-        LibraryHub(library: project, covers: libraryCovers, onOpen: open, onStory: showDetail,
+        LibraryHub(library: project, covers: bookmarkCovers, onOpen: open, onStory: showDetail,
           onExplore: () => setState(() => tab = 0)),
       ],
       if (tab == 2) ...[

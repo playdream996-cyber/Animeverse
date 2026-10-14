@@ -65,7 +65,7 @@ class CreatorDraft {
         '$character listens. “We should decide our next step together.” Your objective remains: ${goal.trim()}.',
         'As ${role.trim()}, you take a first step toward ${goal.trim()}. $character waits for your direction.'],
       foundation: 'Original creator draft', sourceUrl: '', world: world.trim(),
-      playerRole: role.trim(), goal: goal.trim(), mode: mode, rules: rules, creator: creator.trim(), ageRating: ageRating, tags: List.of(tags));
+      playerRole: role.trim(), goal: goal.trim(), mode: mode, rules: rules == null ? null : AdventureRules.fromJson(rules!.toJson()), creator: creator.trim(), ageRating: ageRating, tags: List.of(tags));
   }
 }
 class PublishedWork {

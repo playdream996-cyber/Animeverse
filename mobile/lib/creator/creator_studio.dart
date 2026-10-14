@@ -136,12 +136,17 @@ class _CreatorStudioState extends State<CreatorStudio> {
             sync();
             final problems = d.rules?.validate() ?? [];
             if (problems.isNotEmpty) { setState(() => error = problems.first); return; }
-            final session = StorySession(d.title, d.character, story: d.definition(0), playerName: widget.library.playerName, pronouns: widget.library.pronouns, avatar: widget.library.avatar);
+            String? start;
+            if (d.rules != null) {
+              start = await showDialog<String>(context: context, builder: (context) => SimpleDialog(
+                title: const Text('Preview a starting scenario'), children: [for (final s in d.rules!.starts)
+                  SimpleDialogOption(onPressed: () => Navigator.pop(context, s.id), child: Text(s.name))]));
+              if (start == null || !mounted) return;
+            }
+            final session = StorySession(d.title, d.character, story: d.definition(0), startId: start, playerName: widget.library.playerName, pronouns: widget.library.pronouns, avatar: widget.library.avatar);
             widget.library.addSession(session); await widget.onPlay(session);
           }, icon: const Icon(Icons.play_arrow), label: const Text('Play preview')),
           const SizedBox(height: 26),
-          const Text('Who can discover it?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
           OutlinedButton.icon(onPressed: () async {
             sync();
             final rules = await Navigator.push(context, MaterialPageRoute(builder: (_) => RulesEditor(rules: d.rules)));
@@ -155,6 +160,8 @@ class _CreatorStudioState extends State<CreatorStudio> {
           field(creator, 'Creator name', 'Your pen name', limit: 40),
           field(tags, 'Tags', 'Mystery, coastal, choices matter', limit: 240),
           options('Age rating', ['Everyone', 'Teen', 'Mature'], d.ageRating, (v) => d.ageRating = v),
+          const Text('Who can discover it?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
           for (final v in WorkVisibility.values) ListTile(
             contentPadding: EdgeInsets.zero,
             onTap: () => setState(() => visibility = v),

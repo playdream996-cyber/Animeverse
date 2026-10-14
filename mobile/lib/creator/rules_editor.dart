@@ -11,17 +11,21 @@ class RulesEditor extends StatefulWidget {
 class _RulesEditorState extends State<RulesEditor> {
   late Map<String,dynamic> data = object(jsonDecode(jsonEncode((widget.rules ?? lighthouseRules()).toJson())));
   final form = GlobalKey<FormState>();
+  final fieldScroll = <String, ScrollController>{};
+  ScrollController scroller(Map row, String field) => fieldScroll.putIfAbsent('${identityHashCode(row)}-$field', () => ScrollController(keepScrollOffset: false));
+  @override
+  void dispose() { for (final controller in fieldScroll.values) { controller.dispose(); } super.dispose(); }
   String? error;
   int sequence = 0;
   String keyFor(String group) => '$group-${DateTime.now().microsecondsSinceEpoch}-${sequence++}';
   List<dynamic> rows(String group) => data[group] as List;
   Widget text(Map row, String key, String label, {int lines = 1}) => Padding(
     padding: const EdgeInsets.only(bottom:12), child: TextFormField(key: ValueKey('${row['id']}-$key'),
-      initialValue: row[key] as String? ?? '', minLines:lines,maxLines:lines+2,maxLength:4000,
+      scrollController: scroller(row, key), initialValue: row[key] as String? ?? '', minLines:lines,maxLines:lines+2,maxLength:4000,
       decoration:InputDecoration(labelText:label), onChanged:(v)=>row[key]=v,
       validator:(v)=>v==null||v.trim().isEmpty?'Add $label':null));
   Widget number(Map row,String key,String label) => Padding(padding:const EdgeInsets.only(bottom:12),
-    child:TextFormField(key:ValueKey('${row['id']}-$key'),initialValue:'${row[key]??0}',keyboardType:const TextInputType.numberWithOptions(signed:true),
+    child:TextFormField(key:ValueKey('${row['id']}-$key'),scrollController:scroller(row,key),initialValue:'${row[key]??0}',keyboardType:const TextInputType.numberWithOptions(signed:true),
       decoration:InputDecoration(labelText:label),validator:(v)=>int.tryParse(v??'')==null?'Use a whole number':null,
       onChanged:(v){ final n=int.tryParse(v); if(n!=null) row[key]=n; }));
   Widget select(Map row,String key,String label,List<dynamic> options,String name,{bool optional=false}) {
@@ -64,6 +68,7 @@ class _RulesEditorState extends State<RulesEditor> {
   Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Adventure rules'),actions:[TextButton(onPressed:save,child:const Text('Apply rules'))]),
     body:SafeArea(child:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:Form(key:form,child:ListView(padding:const EdgeInsets.all(20),children:[
       const Text('Make choices matter',style:TextStyle(fontSize:26,fontWeight:FontWeight.bold)),const SizedBox(height:12),
+      if (widget.rules == null) const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Lighthouse example · replace the scenes, replies and rules to make your own adventure.')),
       const Text('Author each response and its effects. Endings require every selected objective and stat condition. Active lore is limited to the three highest-priority entries. Changes apply when you tap Apply rules.'),
       if(error!=null) Padding(padding:const EdgeInsets.symmetric(vertical:16),child:Text(error!,style:const TextStyle(color:Colors.orangeAccent))),
       block('stats','Stats',7,()=>{'id':keyFor('stat'),'name':'New stat','min':0,'max':5,'initial':0},(r)=>[text(r,'name','Stat name'),number(r,'min','Minimum'),number(r,'max','Maximum'),number(r,'initial','Starting value')]),
