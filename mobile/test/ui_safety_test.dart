@@ -67,6 +67,12 @@ void main(){
     await tester.scrollUntilVisible(find.text('Earlier messages'),-300,scrollable:find.descendant(of:find.byType(ChatScreen),matching:find.byType(Scrollable)).first);await tester.pumpAndSettle();await tester.tap(find.text('Earlier messages'));await tester.pumpAndSettle();
     expect(find.textContaining('Messages 1922–1961'),findsOneWidget);expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox());expect(s.readingWindows['Original'],1921);s.dispose();
   });
+  testWidgets('compact status stays bounded with long authored labels',(tester)async{
+    phone(tester);final source=lighthouseRules().toJson();(source['stats'] as List).first['name']='Insight ' * 100;
+    final rules=AdventureRules.fromJson(source);final d=CreatorDraft(id:'long',title:'Long labels',premise:'A coast',world:'A coast',role:'Traveler',goal:'Find the light',opening:'Aira waits.',rules:rules);
+    final s=StorySession(d.title,d.character,story:d.definition(1));
+    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:ChatScreen(session:s)));await tester.pumpAndSettle();expect(tester.getSize(find.byType(AdventureSummary)).height,lessThan(150));expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox());s.dispose();
+  });
   testWidgets('locked choices explain required stats',(tester)async{
     phone(tester);final s=StorySession('Lighthouse','Mika',story:lighthouseStory());s.send('Search the keeper’s desk');s.finishReply();s.send('Take the shortcut');s.finishReply();
     await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:ChatScreen(session:s)));await tester.pumpAndSettle();expect(find.text('Needs Insight 2 · you have 1'),findsOneWidget);expect(find.text('Relight the lighthouse'),findsOneWidget);expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox());s.dispose();
