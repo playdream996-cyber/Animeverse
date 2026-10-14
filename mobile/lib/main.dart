@@ -39,7 +39,7 @@ class AnimeverseApp extends StatelessWidget {
       dividerColor: line,
       navigationBarTheme: const NavigationBarThemeData(backgroundColor: ink, indicatorColor: Color(0xFF29321D), labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
       cardTheme: CardThemeData(color: panel, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: line))),
-      chipTheme: ChipThemeData(backgroundColor: panel, selectedColor: lavender, side: const BorderSide(color: line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), labelStyle: const TextStyle(fontSize: 12)),
+      chipTheme: ChipThemeData(backgroundColor: panel, selectedColor: lavender, side: const BorderSide(color: line), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), labelStyle: const TextStyle(fontFamily: 'Inter', fontSize: 12)),
       bottomSheetTheme: const BottomSheetThemeData(backgroundColor: ink, showDragHandle: true),
       filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))),
       inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: panel, contentPadding: const EdgeInsets.all(16),
