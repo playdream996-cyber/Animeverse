@@ -20,7 +20,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aira'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Examine the key'));
+    await tester.scrollUntilVisible(find.text('Examine the key'), 250, scrollable: find.descendant(of: find.byType(ChatScreen), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Examine the key'));
@@ -45,7 +45,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Create story'));
+    await tester.scrollUntilVisible(find.text('Create story'), 250, scrollable: find.descendant(of: find.byType(LibraryScreen), matching: find.byType(Scrollable)).first);
       await tester.pumpAndSettle();
     await tester.tap(find.text('Create story'));
     await tester.pumpAndSettle();

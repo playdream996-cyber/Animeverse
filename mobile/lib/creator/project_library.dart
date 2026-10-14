@@ -73,6 +73,8 @@ class CreatorDraft {
 class PublishedWork {
   PublishedWork(CreatorDraft draft, this.version, this.visibility) : _draft = draft.copy();
   final CreatorDraft _draft;
+  String get id => _draft.id;
+  String get title => _draft.title;
   CreatorDraft get draft => _draft.copy();
   final int version;
   final WorkVisibility visibility;
@@ -106,7 +108,7 @@ class ProjectLibrary extends ChangeNotifier {
   int _counter = 0;
   List<PublishedWork> get latest {
     final works = <String, PublishedWork>{};
-    for (final edition in editions) { works[edition.draft.id] = edition; }
+    for (final edition in editions) { works[edition.id] = edition; }
     return works.values.toList().reversed.toList();
   }
   List<PublishedWork> get showcase => latest.where((w) => w.visibility == WorkVisibility.public).toList();
@@ -181,7 +183,7 @@ class ProjectLibrary extends ChangeNotifier {
     final errors = draft.rules?.validate() ?? [];
     if (errors.isNotEmpty) throw FormatException(errors.first);
     exportDraft(draft); // Ensure a saved edition fits the portable format limits.
-    final version = editions.where((w) => w.draft.id == draft.id).length + 1;
+    final version = editions.where((w) => w.id == draft.id).length + 1;
     final work = PublishedWork(draft.copy(), version, visibility);
     editions.add(work);
     changed(); await flush(); return work;

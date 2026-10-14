@@ -19,7 +19,7 @@ void main() {
     s.send(s.choices.first); s.finishReply(); s.addMemory('Later clue');
     await tester.pumpWidget(MaterialApp(theme: ThemeData.dark(), home: ChatScreen(session: s)));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Your adventure guide'));
+    await tester.scrollUntilVisible(find.text('Your adventure guide'), -300, scrollable: find.descendant(of: find.byType(ChatScreen), matching: find.byType(Scrollable)).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Your adventure guide'));
     await tester.pumpAndSettle();

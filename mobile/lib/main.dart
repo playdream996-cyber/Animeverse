@@ -130,8 +130,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     StoryCover(lighthouseStory().title, lighthouseStory().genre, lighthouseStory().description,
       lighthouseStory().art, lighthouseStory().character, lighthouseStory().tag, definition: lighthouseStory()), if (testStoriesEnabled)
     ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag, definition: s)),
-    ...project.showcase.map((w) => StoryCover(w.story.title, w.story.genre, w.story.description,
-      w.story.art, w.story.character, 'LOCAL SHOWCASE · VERSION ${w.version}', definition: w.story))];
+    ...project.showcase.map((w) { final s = w.story; return StoryCover(s.title, s.genre, s.description,
+      s.art, s.character, 'LOCAL SHOWCASE · VERSION ${w.version}', definition: s); })];
   List<StoryCover> get bookmarkCovers {
     final saved = {for (final s in libraryCovers) s.definition?.id ?? s.title: s};
     for (final work in project.editions) {
@@ -251,7 +251,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
           const SizedBox(height: 22), const Text('Story editions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           for (final w in project.latest) ListTile(contentPadding: EdgeInsets.zero,
-            title: Text(w.draft.title), subtitle: Text('Version ${w.version} · ${w.visibility == WorkVisibility.public ? 'Local showcase' : w.visibility == WorkVisibility.linkOnly ? 'Link only preview' : 'Private'}'),
+            title: Text(w.title), subtitle: Text('Version ${w.version} · ${w.visibility == WorkVisibility.public ? 'Local showcase' : w.visibility == WorkVisibility.linkOnly ? 'Link only preview' : 'Private'}'),
             trailing: const Icon(Icons.play_circle_outline, color: lavender),
             onTap: () => showDetail(StoryCover(w.story.title, w.story.genre, w.story.description,
               w.story.art, w.story.character, 'BY YOU · VERSION ${w.version}', definition: w.story))),
