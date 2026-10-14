@@ -149,6 +149,7 @@ class ProjectLibrary extends ChangeNotifier {
     if (!draft.ready) throw StateError('Complete the story first');
     final errors = draft.rules?.validate() ?? [];
     if (errors.isNotEmpty) throw FormatException(errors.first);
+    exportDraft(draft); // Ensure a saved edition fits the portable format limits.
     final version = editions.where((w) => w.draft.id == draft.id).length + 1;
     final work = PublishedWork(draft.copy(), version, visibility);
     editions.add(work);
@@ -158,8 +159,12 @@ class ProjectLibrary extends ChangeNotifier {
   void archiveSession(StorySession session, bool value) { session.archived = value; changed(); }
   void renameSession(StorySession session, String value) { session.label = value.trim(); changed(); }
   void archiveDraft(CreatorDraft draft, bool value) { draft.archived = value; changed(); }
-  String exportDraft(CreatorDraft draft) => const JsonEncoder.withIndent('  ').convert({
-    'format': 'animeverse-original-story', 'version': 1, 'draft': draft.toJson()..remove('archived')});
+  String exportDraft(CreatorDraft draft) {
+    final result = const JsonEncoder.withIndent('  ').convert({
+      'format': 'animeverse-original-story', 'version': 1, 'draft': draft.toJson()..remove('archived')});
+    if (result.length > 150000) throw const FormatException('Shorten the story or its authored replies before export or publication. The portable format supports 150,000 characters.');
+    return result;
+  }
   CreatorDraft importDraft(String raw) {
     if (raw.length > 150000) throw const FormatException('Story text is too large.');
     try {

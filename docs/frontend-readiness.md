@@ -10,7 +10,7 @@ Reviewed 2026-10-14 against the repository's OOC audit and current Flutter sourc
 - Summaries and pinned notes belong to each timeline. Branching at the latest message copies them independently. Branching earlier uses only selected messages for its recap and clears pinned notes, since notes have no historical timestamps yet. This prevents future facts leaking into a past checkpoint. Old shared-note saves retain notes only on the active timeline.
 - Discover search matches premise, companion and genre as well as title.
 
-## Still missing and worth building before connecting AI
+## Initial gap inventory (implementation status updated below)
 
 | Priority | Gap | Frontend acceptance condition | Later backend requirement |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Reviewed 2026-10-14 against the repository's OOC audit and current Flutter sourc
 | P2 | Community presentation | Story/creator pages and review/report flows can be tested with labeled fixtures. | Real users, likes, follows, comments, abuse controls and notifications. |
 | P2 | Prepared contextual media | Creator assigns media to scenes and player can inspect deterministic scene transitions. | Authorized asset storage and selection rules. |
 
-## Recommended next milestone
+## Milestone target (now implemented locally)
 
 Build a single fully authored original adventure using structured stats, triggered lore and two explicit endings. Exercise create → preview → save edition → start → checkpoint branch → resume → ending entirely with deterministic local state. Then connect the backend to the same contracts. Scaling the story catalog before this loop works would conceal the main product gaps.
 

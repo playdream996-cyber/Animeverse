@@ -16,7 +16,11 @@ Main and earlier draft PRs are not a deployed combined product.
 | Version isolation | Editing drafts doesn't mutate editions or existing sessions | Local model, not server permissions |
 | Save/resume | Serial JSON snapshots and lifecycle flush | Best effort; no critical-data guarantees |
 | Interrupted replies | Partial reply restores stopped | No backend job to reconnect |
-| Memory/branches | Editable notes and independent transcript branches | No semantic Mem0/historical-state integration |
+| Memory/branches | Timeline-specific notes, summaries and per-message world checkpoints | Historical notes clear; no semantic Mem0 |
+| Adventure engine | Stats, objectives, triggered lore, scene transitions, starts and endings | Deterministic local authored rules |
+| Library/profile | Bookmarks, recent ordering, rename/archive/restore, identity, reading size | On-device only |
+| Portability | Validated creator-only JSON import/export | Clipboard; no native file picker |
+| Recovery | Injectable local transport, failure tests, effect-safe retry | Live HTTP recovery still pending |
 
 ## Implemented backend foundation
 
@@ -47,7 +51,7 @@ not fixed visual regression baselines. APK build status is recorded in the PR.
 
 ## Frontend readiness review
 
-See [frontend-readiness.md](frontend-readiness.md) for prioritized gaps and acceptance conditions. The latest frontend pass adds pinned adventure guides, message checkpoints, timeline-specific summaries/notes, safe migration of legacy shared notes, and broader Discover search. Structured stats/lore/endings remain the next product milestone.
+See [frontend-readiness.md](frontend-readiness.md) for prioritized gaps and acceptance conditions. The latest frontend pass adds pinned adventure guides, message checkpoints, timeline-specific summaries/notes, safe migration of legacy shared notes, and broader Discover search. Structured stats/lore/endings are now implemented locally in the authored milestone below.
 
 
 ## Authored frontend milestone

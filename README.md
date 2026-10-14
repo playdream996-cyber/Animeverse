@@ -14,8 +14,12 @@ on the frontend/flutter-prototype branch; this is a pilot, not a launched servic
   device's local showcase. No content is uploaded or shared online.
 - My stories: independent playthroughs, progressive reply text, Stop, notes and branches.
 - Best-effort on-device saving through a replaceable storage adapter.
+- The Lighthouse Promise: two starts, three stats/objectives, triggered lore, scene media and two endings.
+- Creator rule forms, checkpoint world state, ending collection and retry-safe simulated failures.
+- Local player profiles, reading settings, bookmarks, recent ordering, rename and archive/restore.
+- Creator attribution/tags/rating and validated creator-only clipboard JSON export/import.
 
-The three original prototype covers and five separate temporary test stories remain.
+The authored adventure is separate from the three original prototype covers and five removable temporary test stories.
 The manga reference adapter is optional and does not provide story text.
 
 ## What is already in the repository
@@ -33,7 +37,7 @@ The manga reference adapter is optional and does not provide story text.
 
 Authenticated accounts and API; PostgreSQL work versions and private sessions;
 Mem0 and versioned summaries; actual streamed model replies; publish/review permissions;
-stats, conditional lore and ending evaluator. Then real-model and device benchmarks.
+server-authoritative validation of the local adventure contracts. Then real-model and device benchmarks.
 
 Local preview visibility is not server authorization. SharedPreferences is not a
 critical-data database or a guarantee against abrupt process/device failure.

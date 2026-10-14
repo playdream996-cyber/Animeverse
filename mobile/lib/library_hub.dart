@@ -5,7 +5,9 @@ import 'story_session.dart';
 import 'creator/project_library.dart';
 
 Future<void> storyExport(BuildContext context,ProjectLibrary library,CreatorDraft draft) async {
-  final text=library.exportDraft(draft);
+  String text;
+  try { text=library.exportDraft(draft); }
+  on FormatException catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.message))); return; }
   await showDialog<void>(context:context,builder:(context)=>AlertDialog(title:const Text('Export original story'),
     content:SizedBox(width:600,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       const Text('Copy this portable story file into a .json document. It includes creator settings and rules, and excludes player profiles, transcripts and private notes.'),const SizedBox(height:16),SelectableText(text,style:const TextStyle(fontSize:11))]))),
