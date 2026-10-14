@@ -106,9 +106,9 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         padding: const EdgeInsets.all(22), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(height: 200, child: Artwork(story.art))),
           const SizedBox(height: 20), Text(story.tag, style: const TextStyle(color: lavender, fontSize: 10)),
-          const SizedBox(height: 8), Text(story.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8), Text(story.title, style: const TextStyle(fontFamily: 'Lora', fontSize: 30, height: 1.2, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12), Text(story.description, style: const TextStyle(color: muted, height: 1.6)),
-          const SizedBox(height: 18), Text('Companion · ${story.character}'),
+          const SizedBox(height: 20), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)), child: Row(children: [const CircleAvatar(backgroundColor: Color(0xFF29321D), child: Icon(Icons.people_outline, color: lavender, size: 20)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('YOUR COMPANION', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 4), Text(story.character, style: const TextStyle(fontWeight: FontWeight.w600))]))])),
           BookmarkControl(library: project, storyKey: story.definition?.id ?? story.title),
           if (story.definition != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text('By ${story.definition!.creator} · ${story.definition!.ageRating}\n${story.definition!.tags.join(' · ')}')),
 
@@ -233,7 +233,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
           onExplore: () => setState(() => tab = 0)),
       ],
       if (tab == 2) ...[
-        const Text('My titles', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+        const Text('My titles', style: TextStyle(fontFamily: 'Lora', fontSize: 34, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8), const Text('Your worlds. Your editions. Your next idea.', style: TextStyle(color: muted)),
         const SizedBox(height: 22),
         if (project.drafts.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 24),
@@ -268,12 +268,9 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         const SizedBox(height: 24), ClipRRect(borderRadius: BorderRadius.circular(16),
           child: const SizedBox(height: 200, child: Artwork('assets/art/lantern.png'))),
         const SizedBox(height: 24),
-        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.auto_awesome_outlined, color: lavender),
-          title: Text('Define your world'), subtitle: Text('Choose a genre, tone, role and goal.')),
-        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.play_circle_outline, color: lavender),
-          title: Text('Preview the opening'), subtitle: Text('Read, edit and play your first scene.')),
-        const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.public_outlined, color: lavender),
-          title: Text('Prepare your story edition'), subtitle: Text('Private, link only or local showcase.')),
+        const StudioFeature(number: '01', title: 'Define your world', description: 'The setting, the cast, the reason to care.', icon: Icons.auto_awesome_outlined),
+        const StudioFeature(number: '02', title: 'Preview the opening', description: 'Play the first scene. Make it yours.', icon: Icons.play_circle_outline),
+        const StudioFeature(number: '03', title: 'Prepare your story edition', description: 'Keep it private or add it to your local showcase.', icon: Icons.public_outlined),
         const SizedBox(height: 20), FilledButton.icon(onPressed: () => editDraft(),
           icon: const Icon(Icons.add), label: const Text('Create story')),
         const SizedBox(height: 20), const Text('Local preview · scripted replies · online publishing pending',
@@ -281,6 +278,17 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
       ],
     ])))), bottomNavigationBar: DecoratedBox(decoration: const BoxDecoration(border: Border(top: BorderSide(color: line))), child: NavigationBar(height: 76, selectedIndex: tab, onDestinationSelected: (i) => setState(() => tab = i), destinations: const [NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Discover'), NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories), label: 'My stories'), NavigationDestination(icon: Icon(Icons.collections_bookmark_outlined), label: 'My titles'), NavigationDestination(icon: Icon(Icons.edit_square), label: 'Create')])));
   }
+}
+
+class StudioFeature extends StatelessWidget {
+  const StudioFeature({super.key, required this.number, required this.title, required this.description, required this.icon});
+  final String number, title, description;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Container(
+    padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: line)),
+    child: Row(children: [Icon(icon, color: lavender, size: 22), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)), const SizedBox(height: 5), Text(description, style: const TextStyle(color: muted, fontSize: 11, height: 1.5))])), const SizedBox(width: 8), Text(number, style: const TextStyle(color: muted, fontSize: 10))])));
 }
 
 class HeroCover extends StatelessWidget {

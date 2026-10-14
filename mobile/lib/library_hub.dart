@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'main.dart' show Artwork, StoryCover;
+import 'main.dart' show Artwork, StoryCover, muted;
 import 'story_session.dart';
 import 'creator/project_library.dart';
 import 'story_files.dart';
@@ -81,12 +81,12 @@ class _LibraryHubState extends State<LibraryHub> {
     final saved=widget.covers.where((s)=>p.bookmarks.contains(s.definition?.id??s.title)&&'${s.title} ${s.genre}'.toLowerCase().contains(query.toLowerCase())).toList();
     if(sort=='Title')saved.sort((a,b)=>a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      const Text('Your library',style:TextStyle(fontSize:30,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('Resume a journey, revisit a bookmark, or restore an archived run.'),const SizedBox(height:16),
+      const Text('Your library',style:TextStyle(fontFamily:'Lora',fontSize:34,fontWeight:FontWeight.w500)),const SizedBox(height:8),const Text('Every world you’ve made a little more yours.', style: TextStyle(color: muted, height: 1.5)),const SizedBox(height:16),
       Wrap(spacing:8,children:[for(final f in ['Continue','Bookmarks','Archived']) ChoiceChip(label:Text(f),selected:filter==f,onSelected:(_)=>setState(()=>filter=f))]),const SizedBox(height:16),
       TextField(onChanged:(v)=>setState(()=>query=v),decoration:const InputDecoration(labelText:'Search your library',prefixIcon:Icon(Icons.search))),
       DropdownButton<String>(value:sort,items:[for(final s in ['Recent','Title','Progress'])DropdownMenuItem(value:s,child:Text('Sort: $s'))],onChanged:(v)=>setState(()=>sort=v??'Recent')),
       if(filter=='Bookmarks') ...[
-        for(final s in saved) ListTile(leading:const Icon(Icons.bookmark),title:Text(s.title),subtitle:Text(s.genre),onTap:()=>widget.onStory(s)),
+        for(final s in saved) Card(child: ListTile(contentPadding: const EdgeInsets.all(12), leading: ClipRRect(borderRadius: BorderRadius.circular(10), child: SizedBox(width: 52, height: 68, child: Artwork(s.art))), title:Text(s.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),subtitle:Text('${s.genre} · With ${s.character}', style: const TextStyle(color: muted, fontSize: 11)), trailing: const Icon(Icons.arrow_forward, size: 18),onTap:()=>widget.onStory(s))),
         if(saved.isEmpty) const Padding(padding:EdgeInsets.all(20),child:Text('Bookmark a story from its detail page.')),
       ] else ...[
         if(sessions.isEmpty) Padding(padding:const EdgeInsets.all(20),child:Column(children:[Text(filter=='Archived'?'No archived playthroughs.':'Your first chapter is waiting.'),const SizedBox(height:12),FilledButton(onPressed:widget.onExplore,child:const Text('Explore stories'))])),
