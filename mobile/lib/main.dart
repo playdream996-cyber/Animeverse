@@ -101,6 +101,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
           const SizedBox(height: 8), Text(story.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12), Text(story.description, style: const TextStyle(color: muted, height: 1.6)),
           const SizedBox(height: 18), Text('Companion · ${story.character}'),
+          if (story.definition != null) StoryGuide(story: story.definition!),
           if (story.definition?.foundation == 'Original creator draft') const Padding(
             padding: EdgeInsets.only(top: 12), child: Text('Local creator edition · your playthrough stays separate.',
               style: TextStyle(color: muted, fontSize: 12))),
@@ -164,7 +165,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final query = search.text.trim().toLowerCase();
-    final visible = libraryCovers.where((s) => (genre == 'All' || genre == s.genre) && s.title.toLowerCase().contains(query)).toList();
+    final visible = libraryCovers.where((s) => (genre == 'All' || genre == s.genre) && '${s.title} ${s.genre} ${s.description} ${s.character}'.toLowerCase().contains(query)).toList();
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
       Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. Replies are scripted. Stories and progress save on this device. Online accounts and sharing are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
       const SizedBox(height: 24),
@@ -314,6 +315,14 @@ class _ChatScreenState extends State<ChatScreen> {
     widget.session.send(choice ?? input.text); input.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) { if (scroll.hasClients) scroll.animateTo(scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut); });
   }
+  Future<void> branchAfter(int index) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+      title: const Text('Try another path?'),
+      content: const Text('Create a timeline ending at this message. Your original remains available. Earlier branches start with a recap of the selected messages and no pinned notes, so later discoveries cannot leak into the past.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Create branch'))]));
+    if (confirmed == true && mounted) widget.session.fork(throughTurn: index);
+  }
   Future<void> memories() async { await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: ink, builder: (context) => MemorySheet(session: widget.session)); }
   Future<void> branches() async {
     if (widget.session.isReplying) return;
@@ -328,9 +337,13 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(child: ListView(controller: scroll, children: [
           SizedBox(height: 230, child: Stack(fit: StackFit.expand, children: [Artwork(s.story?.art ?? coverFor(s.title).art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xEE0D0E10)]))), const Positioned(bottom: 20, left: 22, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('CHAPTER 01', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)), SizedBox(height: 6), Text('The first encounter', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))]))])),
           Padding(padding: const EdgeInsets.fromLTRB(22, 8, 22, 24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const DemoBadge(), const SizedBox(height: 24),
+            const DemoBadge(),
+            if (s.story != null) StoryGuide(story: s.story!),
+            const Padding(padding: EdgeInsets.only(top: 12), child: Text('Write what you do or say, or choose a suggested action. Use the split icon beside a message to try another path.', style: TextStyle(color: muted, fontSize: 12, height: 1.5))),
+            const SizedBox(height: 24),
             for (final turn in [...s.turns, if (s.isReplying && s.visibleReply.isNotEmpty) Turn(s.character, s.visibleReply)]) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)]]), const SizedBox(height: 12),
+              Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)], const Spacer(),
+                if (s.turns.contains(turn)) IconButton(tooltip: 'Branch after this message', visualDensity: VisualDensity.compact, icon: const Icon(Icons.call_split, size: 16, color: muted), onPressed: s.isReplying ? null : () => branchAfter(s.turns.indexOf(turn)))]), const SizedBox(height: 12),
               SelectableText(turn.text, style: TextStyle(fontFamily: 'Lora', fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
             ])),
             if (s.isReplying && s.visibleReply.isNotEmpty) const ReplyCursor(),
@@ -372,7 +385,7 @@ class _MemorySheetState extends State<MemorySheet> {
   Widget build(BuildContext context) => SafeArea(child: Padding(padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + MediaQuery.viewInsetsOf(context).bottom), child: SizedBox(height: (MediaQuery.sizeOf(context).height - MediaQuery.viewInsetsOf(context).bottom - 100).clamp(100.0, MediaQuery.sizeOf(context).height * .65), child: ListView(children: [
     const Text('Your story remembers', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('Manual demo notes. AI memory is not connected.', style: TextStyle(color: Colors.white60)), const SizedBox(height: 20),
     TextField(controller: summary, minLines: 3, maxLines: 6, maxLength: 2000, decoration: const InputDecoration(labelText: 'Story summary')),
-    Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () { widget.session.updateSummary(summary.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Summary saved for this session'))); }, child: const Text('Save summary'))),
+    Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () { widget.session.updateSummary(summary.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Summary updated for this timeline'))); }, child: const Text('Save summary'))),
     const Text('Pinned facts', style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 8),
     for (final fact in List<String>.of(widget.session.memories)) ListTile(contentPadding: EdgeInsets.zero, title: Text(fact), trailing: IconButton(tooltip: 'Remove memory', icon: const Icon(Icons.close), onPressed: () => setState(() => widget.session.removeMemory(fact)))),
     TextField(controller: memory, maxLength: 250, decoration: const InputDecoration(hintText: 'Add a fact to remember')),
@@ -394,4 +407,23 @@ class _ReplyCursorState extends State<ReplyCursor> with SingleTickerProviderStat
   Widget build(BuildContext context) => FadeTransition(opacity: controller,
     child: const Padding(padding: EdgeInsets.only(bottom: 12),
       child: Text('▍', style: TextStyle(color: lavender))));
+}
+
+/// Creator-authored guidance belongs to the edition, not private player notes.
+class StoryGuide extends StatelessWidget {
+  const StoryGuide({super.key, required this.story});
+  final StoryDefinition story;
+  @override
+  Widget build(BuildContext context) {
+    if (story.playerRole.isEmpty && story.goal.isEmpty && story.world.isEmpty) return const SizedBox.shrink();
+    return Padding(padding: const EdgeInsets.only(top: 12), child: Card(color: panel, margin: EdgeInsets.zero,
+      child: ExpansionTile(title: const Text('Your adventure guide', style: TextStyle(fontSize: 14)),
+        subtitle: Text(story.goal, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 12)),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final entry in {'Your role': story.playerRole, 'Your goal': story.goal, 'World': story.world, 'Adventure type': story.mode}.entries)
+            if (entry.value.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text('${entry.key} · ${entry.value}', style: const TextStyle(height: 1.5))),
+          const Text('In this preview, replies are scripted and goals do not trigger endings yet.', style: TextStyle(color: muted, fontSize: 12, height: 1.5)),
+        ])));
+  }
 }

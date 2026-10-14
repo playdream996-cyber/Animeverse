@@ -14,6 +14,19 @@ class FailedStorage extends MemoryProjectStorage {
   Future<void> write(String value) async => throw StateError('Device unavailable');
 }
 void main() {
+  test('edition guidance is pinned and restores independently of draft edits', () async {
+    final p = ProjectLibrary(MemoryProjectStorage());
+    final d = ready(p);
+    final w = await p.publish(d, WorkVisibility.private);
+    final session = StorySession(d.title, d.character, story: w.story);
+    d.goal = 'A different goal'; d.role = 'A different role';
+    final restored = StorySession.fromJson(session.toJson());
+    expect(restored.story!.goal, 'Find the lighthouse');
+    expect(restored.story!.playerRole, 'An investigator');
+    expect(restored.story!.mode, 'Complete adventure');
+    expect(restored.story!.withReference('Reference', 'https://example.com').goal, 'Find the lighthouse');
+    restored.dispose(); session.dispose(); p.dispose();
+  });
   test('failed write produces a visible save error', () async {
     final p = ProjectLibrary(FailedStorage());
     ready(p); await p.flush();

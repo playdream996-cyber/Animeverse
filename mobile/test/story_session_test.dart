@@ -2,6 +2,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:animeverse/story_session.dart';
 
 void main() {
+  test('historical fork excludes future turns and notes, survives reload', () {
+    final s = StorySession('Academy', 'Aira');
+    s.send('key'); s.finishReply();
+    s.addMemory('Future discovery'); s.updateSummary('Future recap');
+    s.fork(throughTurn: 0);
+    expect(s.turns.length, 1);
+    expect(s.memories, isEmpty);
+    expect(s.summary, isNot(contains('Future recap')));
+    s.addMemory('Branch-only fact'); s.updateSummary('Alternate recap');
+    final restored = StorySession.fromJson(s.toJson());
+    expect(restored.memories, ['Branch-only fact']);
+    restored.selectBranch('Original');
+    expect(restored.turns.length, 3);
+    expect(restored.memories, contains('Future discovery'));
+    expect(restored.memories, isNot(contains('Branch-only fact')));
+    expect(restored.summary, 'Future recap');
+    restored.dispose(); s.dispose();
+  });
+  test('current fork copies notes without sharing mutable state', () {
+    final s = StorySession('Academy', 'Aira');
+    s.fork(); s.addMemory('Alternate fact'); s.updateSummary('Alternate recap');
+    s.selectBranch('Original');
+    expect(s.memories, isNot(contains('Alternate fact')));
+    expect(s.summary, isNot('Alternate recap'));
+    s.dispose();
+  });
+  test('legacy saves retain shared notes only on their active timeline', () {
+    final s = StorySession('Academy', 'Aira'); s.fork();
+    final j = s.toJson()..remove('branchSummaries')..remove('branchMemories');
+    final restored = StorySession.fromJson(j);
+    expect(restored.memories, isNotEmpty);
+    restored.selectBranch('Original'); expect(restored.memories, isEmpty);
+    restored.dispose(); s.dispose();
+  });
   testWidgets('stop preserves partial text and allows a fresh turn', (tester) async {
     final session = StorySession('Academy', 'Aira');
     session.send('key');

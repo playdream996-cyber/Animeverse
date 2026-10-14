@@ -44,3 +44,7 @@ private-session exclusion, version pinning and interrupted partial replies.
 Widget tests cover the guided editor and discovery isolation.
 CI renders real Flutter screenshots for visual inspection. They are preview artifacts,
 not fixed visual regression baselines. APK build status is recorded in the PR.
+
+## Frontend readiness review
+
+See [frontend-readiness.md](frontend-readiness.md) for prioritized gaps and acceptance conditions. The latest frontend pass adds pinned adventure guides, message checkpoints, timeline-specific summaries/notes, safe migration of legacy shared notes, and broader Discover search. Structured stats/lore/endings remain the next product milestone.

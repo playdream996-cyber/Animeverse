@@ -22,14 +22,18 @@ class StorySession extends ChangeNotifier {
   final String character;
   final Map<String, List<Turn>> branches;
   String activeBranch = 'Original';
-  String summary = 'You arrived at the academy after dusk. Your companion recognized you and a mysterious silver key appeared.';
-  final List<String> memories = ['You carry a silver key.', 'Your companion recognized you at the academy.'];
+  final Map<String, String> _summaries = {'Original': 'You arrived at the academy after dusk. Your companion recognized you and a mysterious silver key appeared.'};
+  String get summary => _summaries[activeBranch] ?? '';
+  set summary(String value) => _summaries[activeBranch] = value;
+  final Map<String, List<String>> _memories = {'Original': ['You carry a silver key.', 'Your companion recognized you at the academy.']};
+  List<String> get memories => _memories.putIfAbsent(activeBranch, () => []);
   List<Turn> get turns => branches[activeBranch]!;
   Map<String, dynamic> toJson() => {
     'title': title, 'character': character, 'story': story?.toJson(),
     'branches': branches.map((key, turns) => MapEntry(key,
       turns.map((t) => {'speaker': t.speaker, 'text': t.text}).toList())),
     'activeBranch': activeBranch, 'summary': summary, 'memories': memories,
+    'branchSummaries': _summaries, 'branchMemories': _memories,
     'interrupted': isReplying, 'visibleReply': visibleReply, 'replyStopped': replyStopped};
   factory StorySession.fromJson(Map<String, dynamic> j) {
     final story = j['story'] == null ? null : StoryDefinition.fromJson(Map<String, dynamic>.from(j['story'] as Map));
@@ -40,8 +44,17 @@ class StorySession extends ChangeNotifier {
     });
     s.activeBranch = j['activeBranch'] as String;
     if (!s.branches.containsKey(s.activeBranch)) throw const FormatException('Missing saved timeline');
-    s.summary = j['summary'] as String;
-    s.memories..clear()..addAll(List<String>.from(j['memories'] as List));
+    s._summaries.clear(); s._memories.clear();
+    for (final name in s.branches.keys) {
+      // Old saves had shared notes. Retain them on the active branch only;
+      // never infer historical facts for another timeline.
+      s._summaries[name] = j['branchSummaries'] is Map
+          ? (j['branchSummaries'][name] as String? ?? '')
+          : (name == s.activeBranch ? j['summary'] as String : '');
+      s._memories[name] = j['branchMemories'] is Map
+          ? List<String>.from(j['branchMemories'][name] as List? ?? [])
+          : (name == s.activeBranch ? List<String>.from(j['memories'] as List) : []);
+    }
     s.replyStopped = j['replyStopped'] == true || j['interrupted'] == true;
     final partial = j['visibleReply'] as String? ?? '';
     if (j['interrupted'] == true && partial.isNotEmpty) s.turns.add(Turn(s.character, partial));
@@ -108,11 +121,20 @@ class StorySession extends ChangeNotifier {
       });
     });
   }
-  void fork() {
+  void fork({int? throughTurn}) {
     if (isReplying) return;
+    final last = throughTurn ?? turns.length - 1;
+    if (last < 0 || last >= turns.length) return;
+    final prefix = turns.take(last + 1).toList();
+    final atEnd = last == turns.length - 1;
+    final branchSummary = atEnd ? summary : prefix.map((t) => '${t.speaker}: ${t.text}').join('\n');
+    final branchMemories = atEnd ? List<String>.of(memories) : <String>[];
     final name = 'Branch ${branches.length}';
-    branches[name] = List<Turn>.of(turns);
+    branches[name] = prefix;
+    _summaries[name] = branchSummary;
+    _memories[name] = branchMemories;
     activeBranch = name;
+    replyStopped = false;
     notifyListeners();
   }
   void selectBranch(String name) {

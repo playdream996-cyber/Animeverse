@@ -55,7 +55,8 @@ class CreatorDraft {
         'You examine your surroundings in ${world.trim()}. $character notices a detail that could help with ${goal.trim()}. Which clue will you follow?',
         '$character listens. “We should decide our next step together.” Your objective remains: ${goal.trim()}.',
         'As ${role.trim()}, you take a first step toward ${goal.trim()}. $character waits for your direction.'],
-      foundation: 'Original creator draft', sourceUrl: '');
+      foundation: 'Original creator draft', sourceUrl: '', world: world.trim(),
+      playerRole: role.trim(), goal: goal.trim(), mode: mode);
   }
 }
 class PublishedWork {
