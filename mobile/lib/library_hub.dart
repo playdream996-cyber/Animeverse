@@ -16,7 +16,7 @@ Future<void> storyImport(BuildContext context,ProjectLibrary library) async {
   await showDialog<void>(context:context,builder:(context)=>StatefulBuilder(builder:(context,setState)=>AlertDialog(title:const Text('Import original story'),
     content:SizedBox(width:600,child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
       const Text('Paste an Animeverse original-story export. Imported stories become a new draft and are never automatically published.'),const SizedBox(height:16),
-      TextField(controller:input,minLines:5,maxLines:10,maxLength:150000,decoration:InputDecoration(labelText:'Story JSON',errorText:error))])),
+      TextField(controller:input,minLines:5,maxLines:10,maxLength:150000,decoration:InputDecoration(labelText:'Story JSON',errorText:error))]))),
     actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Cancel')),FilledButton(onPressed:(){try{library.importDraft(input.text);Navigator.pop(context);}catch(e){setState(()=>error=e is FormatException?e.message:'Invalid story file.');}},child:const Text('Import draft'))])));
   input.dispose();
 }

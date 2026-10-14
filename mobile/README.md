@@ -36,3 +36,8 @@ Jikan supplies optional metadata references only; it never supplies playable pro
 
 CI produces debug APK and four Flutter screen renders. See docs/project-status.md
 for the implementation status and docs/research/ for the full OOC audit and test plan.
+
+
+### Complete authored adventure
+
+Search for **The Lighthouse Promise**, choose a start and follow its authored choices. Search/listen → study → relight reaches the beacon ending; choosing a safe signal reaches the second ending. Check Adventure status for stats, objectives, lore and ending hints. Completed runs can restart or branch before the final action. Preview connection tests intentionally fail the next reply; Retry commits no duplicate input/effects. Player settings and library controls save on this device. Creator studio → Add playable adventure rules edits a lighthouse example; original story export/import uses copied JSON without private player data.

@@ -48,3 +48,8 @@ not fixed visual regression baselines. APK build status is recorded in the PR.
 ## Frontend readiness review
 
 See [frontend-readiness.md](frontend-readiness.md) for prioritized gaps and acceptance conditions. The latest frontend pass adds pinned adventure guides, message checkpoints, timeline-specific summaries/notes, safe migration of legacy shared notes, and broader Discover search. Structured stats/lore/endings remain the next product milestone.
+
+
+## Authored frontend milestone
+
+The Lighthouse Promise is an independent original local adventure with two starts and two endings. Rules editor, stat/objective UI, triggered lore, prepared scene media, ending collection, checkpoint state, retry-safe reply effects, failure simulation, local player profiles/reading settings, bookmarks, recent ordering, rename/archive/restore, creator attribution/tags/rating, and creator-only clipboard JSON import/export are implemented. Temporary manga-reference fixtures remain under their existing feature flag. See frontend-readiness.md for tested scope and remaining backend/device requirements.

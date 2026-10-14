@@ -32,3 +32,25 @@ Reviewed 2026-10-14 against the repository's OOC audit and current Flutter sourc
 Build a single fully authored original adventure using structured stats, triggered lore and two explicit endings. Exercise create → preview → save edition → start → checkpoint branch → resume → ending entirely with deterministic local state. Then connect the backend to the same contracts. Scaling the story catalog before this loop works would conceal the main product gaps.
 
 Do not present a frontend button or fixture as implemented online sharing, dynamic AI story generation or verified OOC behavior. Public manga metadata does not supply reusable story text; keep temporary reference fixtures separate from authored stories.
+
+
+## Implemented local systems — 2026-10-14
+
+The frontend now includes an authored adventure engine and **The Lighthouse Promise**, separate from the removable five-story manga-reference catalog. It has two selectable starts, three bounded stats, three objectives, prioritized triggered world/companion lore, scene artwork transitions and two conditional endings. Complete adventures freeze input after ending; endless worlds continue. Endings are collected across preserved branches.
+
+Creators can author stats, objectives, lore, endings, scenes, choices and starts in a form editor; editions carry a deep snapshot of these rules. Endings use AND conditions for selected objectives, lower/upper stat bounds and minimum completed actions. The editor starts from a clearly labeled lighthouse example; it does not invent original responses with AI. Every action has an authored reply, stat deltas, objective effects, next scene, optional stat gate and ending attempt. Free-text messages are recorded but do not invent state changes in authored previews.
+
+Every committed message carries a state checkpoint. Branching restores that point's stats, objectives, scene and ending eligibility. A reply's effects are pending until the reply fully commits. Stop, simulated offline/timeout/interruption and app interruption preserve unchanged world state. Retry reuses the existing player input, replaces its partial reply and commits once. The transport interface is injectable; the preview failure controls are labeled local tests, not live network connectivity.
+
+Player profiles (name, pronouns, prepared avatar), reading size, bookmarks, most-recent playthrough ordering, playthrough rename, archive/restore and draft archive/restore save locally. New runs pin their starting identity. Creator name, tags and age rating appear in story details. Export/import uses clipboard JSON version 1, validates size, settings and rule references, creates a new unpublished draft, and excludes player profiles/transcripts/private notes. It does not upload or create a real public link.
+
+### Remaining limits
+
+- P0 local stats, objectives, lore, endings and recovery UI are implemented; live model/HTTP behavior still needs backend integration.
+- Android real-device lifecycle/storage and screen-reader testing remain manual work. Widget tests cover phone dimensions, enlarged text and deterministic interactions; rendered images are not a device usability study.
+- Lore triggers currently use stat thresholds, not free-form keyword retrieval. Ending conditions support AND; compound OR groups are not implemented.
+- Notes are untimestamped; historical forks clear them rather than pretending they are historical. Branch summaries remain user-editable.
+- Multiple starts have separate openings, starting scenes and stat overrides; objective definitions are shared within an edition.
+- Prepared scene assets are supported; uploads, audio/voice and live image generation are pending.
+- Original story JSON can be copied/pasted; native file picker and real share sheets are not implemented.
+- Real accounts, cloud synchronization, community pages, comments, likes, follows, reports, moderation, discovery ranking and online publication require backend services. No fictional community content is presented as real users.
