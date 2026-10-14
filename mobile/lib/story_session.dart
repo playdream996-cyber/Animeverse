@@ -127,6 +127,15 @@ class StorySession extends ChangeNotifier {
     s.replyStopped=j['replyStopped']==true || j['interrupted']==true;
     s._retryText=j['retryText']??'';
     s._pendingState=j['pendingState']==null?null:AdventureState.fromJson(object(j['pendingState']));
+    if (s._pendingState != null && story?.rules != null) {
+      final state=s._pendingState!, r=story!.rules!;
+      if (!r.scenes.any((x)=>x.id==state.scene) || state.actions < 0 ||
+        r.stats.any((x)=>!state.stats.containsKey(x.id)||state.stats[x.id]!<x.min||state.stats[x.id]!>x.max) ||
+        state.goals.any((id)=>!r.goals.any((g)=>g.id==id)) || state.ending.isNotEmpty&&r.ending(state.ending)==null) {
+        s.dispose(); throw const FormatException('Invalid pending world checkpoint');
+      }
+    }
+    for(final key in s._summaries.keys.toList()) { s._summaries[key]=String.fromCharCodes(s._summaries[key]!.runes.take(2000)); }
     s.replyError=j['replyError'];
     final partial=j['visibleReply'] as String? ?? '';
     if(j['interrupted']==true && partial.isNotEmpty) s.turns.add(Turn(s.character,partial,state:s.state,partial:true));
@@ -204,7 +213,8 @@ class StorySession extends ChangeNotifier {
     final last=throughTurn??turns.length-1;
     if(last<0 || last>=turns.length) return;
     final prefix=turns.take(last+1).toList(); final atEnd=last==turns.length-1;
-    final recap=atEnd?summary:prefix.map((t)=>'${t.speaker}: ${t.text}').join('\n');
+    final recent = prefix.skip((prefix.length - 6).clamp(0,prefix.length));
+    final recap=atEnd?summary:String.fromCharCodes(('Checkpoint at message ${last + 1}. Recent messages:\n${recent.map((t)=>'${t.speaker}: ${t.text}').join('\n')}').runes.take(2000));
     final facts=atEnd?List<String>.of(memories):<String>[];
     var number = branches.length;
     var name='Branch $number'; while (branches.containsKey(name)) { name='Branch ${++number}'; }
@@ -212,7 +222,7 @@ class StorySession extends ChangeNotifier {
     branches[name]=prefix; _summaries[name]=recap; _memories[name]=facts; activeBranch=name; _clearPending(); _notify();
   }
   void selectBranch(String name) { if(isReplying || !branches.containsKey(name)) return; activeBranch=name; _clearPending(); _notify(); }
-  void updateSummary(String value) { summary=value.trim(); _notify(); }
+  void updateSummary(String value) { summary=String.fromCharCodes(value.trim().runes.take(2000)); _notify(); }
   void addMemory(String value) { final clean=value.trim(); if(clean.isNotEmpty && !memories.contains(clean)) memories.add(clean); _notify(); }
   void removeMemory(String value) { memories.remove(value); _notify(); }
   @override

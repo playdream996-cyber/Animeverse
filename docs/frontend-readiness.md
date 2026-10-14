@@ -54,3 +54,8 @@ Player profiles (name, pronouns, prepared avatar), reading size, bookmarks, most
 - Prepared scene assets are supported; uploads, audio/voice and live image generation are pending.
 - Original story JSON can be copied/pasted; native file picker and real share sheets are not implemented.
 - Real accounts, cloud synchronization, community pages, comments, likes, follows, reports, moderation, discovery ranking and online publication require backend services. No fictional community content is presented as real users.
+
+
+## UI refinement and performance pass
+
+See [ui-stability.md](ui-stability.md) for the UI fixes, implementation safeguards, automated evidence and real-device checks still required. The earlier limits about native file picking/sharing are superseded by this pass; native integrations are implemented but not exercised on a physical Android device here.

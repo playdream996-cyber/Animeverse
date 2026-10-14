@@ -114,18 +114,23 @@ class ProjectLibrary extends ChangeNotifier {
     final raw = await storage.read();
     if (raw == null) return;
     final j = raw.length > 65536 ? await compute(_decodeProject, raw) : _decodeProject(raw);
-    onboardingSeen = j['onboardingSeen'] == true;
     if (j['schema'] != 1) throw const FormatException('Unsupported saved project');
+    final nextDrafts = objects(j['drafts'], CreatorDraft.fromJson);
+    final nextEditions = objects(j['editions'], PublishedWork.fromJson);
+    final nextSessions = <StorySession>[];
+    try { for (final value in j['sessions'] as List) { nextSessions.add(StorySession.fromJson(object(value))); } }
+    catch (_) { for (final session in nextSessions) { session.dispose(); } rethrow; }
+    if (_disposed) { for (final session in nextSessions) { session.dispose(); } return; }
     final profile = j['profile'] is Map ? object(j['profile']) : <String,dynamic>{};
-    playerName = profile['name'] as String? ?? 'You'; pronouns = profile['pronouns'] as String? ?? 'they/them'; avatar = profile['avatar'] as String? ?? 'Star';
-    readingSize = (profile['readingSize'] as num? ?? 17).toDouble().clamp(17, 23);
-    bookmarks.addAll(strings(j['bookmarks']));
-    drafts.addAll((j['drafts'] as List).map((x) => CreatorDraft.fromJson(Map<String, dynamic>.from(x as Map))));
-    editions.addAll((j['editions'] as List).map((x) => PublishedWork.fromJson(Map<String, dynamic>.from(x as Map))));
-    for (final value in j['sessions'] as List) {
-      final s = StorySession.fromJson(Map<String, dynamic>.from(value as Map));
-      sessions.add(s); s.addListener(_sessionChanged);
-    }
+    final name = profile['name'] as String? ?? 'You', nextPronouns = profile['pronouns'] as String? ?? 'they/them', nextAvatar = profile['avatar'] as String? ?? 'Star';
+    final size = (profile['readingSize'] as num? ?? 17).toDouble();
+    onboardingSeen=j['onboardingSeen']==true;
+    playerName=name.length<=40?name:'You';pronouns=['they/them','she/her','he/him'].contains(nextPronouns)?nextPronouns:'they/them';avatar=['Star','Moon','Leaf'].contains(nextAvatar)?nextAvatar:'Star';
+    readingSize=size.isFinite?size.clamp(17,23):17;
+    bookmarks..clear()..addAll(strings(j['bookmarks']));
+    for(final old in sessions) { old.removeListener(_sessionChanged); old.dispose(); }
+    drafts..clear()..addAll(nextDrafts); editions..clear()..addAll(nextEditions); sessions..clear()..addAll(nextSessions);
+    for(final session in sessions) { session.addListener(_sessionChanged); }
   }
   CreatorDraft newDraft() {
     final draft = CreatorDraft(id: '${DateTime.now().microsecondsSinceEpoch}-${_counter++}');

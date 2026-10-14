@@ -22,7 +22,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final library = ProjectLibrary(DeviceProjectStorage(SharedPreferencesAsync()));
   try { await library.load(); }
-  catch (_) { library.readOnly = true; library.saveError = 'Saved project could not be loaded. Restart before creating new content.'; }
+  catch (_) { library.readOnly = true; library.saveError = 'Saved project could not be loaded. Original data was kept. This session is read-only.'; }
   runApp(AnimeverseApp(library: library));
 }
 

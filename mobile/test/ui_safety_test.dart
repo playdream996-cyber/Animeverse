@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:animeverse/main.dart';
 import 'package:animeverse/reader.dart';
 import 'package:animeverse/story_session.dart';
 import 'package:animeverse/authored_story.dart';

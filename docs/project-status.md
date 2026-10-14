@@ -19,7 +19,7 @@ Main and earlier draft PRs are not a deployed combined product.
 | Memory/branches | Timeline-specific notes, summaries and per-message world checkpoints | Historical notes clear; no semantic Mem0 |
 | Adventure engine | Stats, objectives, triggered lore, scene transitions, starts and endings | Deterministic local authored rules |
 | Library/profile | Bookmarks, recent ordering, rename/archive/restore, identity, reading size | On-device only |
-| Portability | Validated creator-only JSON import/export | Clipboard; no native file picker |
+| Portability | Validated creator-only JSON, native file selection/save/share, clipboard fallback | Native device testing pending |
 | Recovery | Injectable local transport, failure tests, effect-safe retry | Live HTTP recovery still pending |
 
 ## Implemented backend foundation
@@ -57,3 +57,5 @@ See [frontend-readiness.md](frontend-readiness.md) for prioritized gaps and acce
 ## Authored frontend milestone
 
 The Lighthouse Promise is an independent original local adventure with two starts and two endings. Rules editor, stat/objective UI, triggered lore, prepared scene media, ending collection, checkpoint state, retry-safe reply effects, failure simulation, local player profiles/reading settings, bookmarks, recent ordering, rename/archive/restore, creator attribution/tags/rating, and creator-only clipboard JSON import/export are implemented. Temporary manga-reference fixtures remain under their existing feature flag. See frontend-readiness.md for tested scope and remaining backend/device requirements.
+
+UI refinement, lazy transcript rendering, isolated large serialization and coalesced saves are documented in [ui-stability.md](ui-stability.md). Zero ANR/crash claims are not made without device profiling.
