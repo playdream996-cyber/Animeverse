@@ -35,6 +35,8 @@ class StorySession extends ChangeNotifier {
         id = '${DateTime.now().microsecondsSinceEpoch}-${_nextId++}',
         updatedAt = DateTime.now().millisecondsSinceEpoch,
         branches = {'Original': []} {
+    final problems = story?.rules?.validate() ?? [];
+    if (problems.isNotEmpty) throw FormatException(problems.first);
     selectedStart = startId ?? story?.rules?.starts.first.id ?? '';
     final rules = story?.rules;
     final start = rules?.starts.firstWhere((s)=>s.id==selectedStart,orElse:()=>rules.starts.first);
@@ -49,6 +51,23 @@ class StorySession extends ChangeNotifier {
   int updatedAt;
   bool archived = false;
   String label = '';
+  final Map<String,double> readingOffsets = {};
+  final Map<String,String> branchOrigins = {'Original':'Starting scene'};
+  double? get readingOffset => readingOffsets[activeBranch];
+  void recordReadingOffset(double offset) {
+    if (!offset.isFinite || offset < 0 || _disposed) return;
+    if ((readingOffsets[activeBranch] ?? -1) == offset) return;
+    readingOffsets[activeBranch] = offset; notifyListeners();
+  }
+  bool renameBranch(String oldName, String newName) {
+    final clean = newName.trim();
+    if (isReplying || _disposed || clean.isEmpty || clean.length > 50 || !branches.containsKey(oldName) || branches.containsKey(clean)) return false;
+    final transcript = branches.remove(oldName)!; branches[clean] = transcript;
+    _summaries[clean] = _summaries.remove(oldName) ?? ''; _memories[clean] = _memories.remove(oldName) ?? [];
+    branchOrigins[clean] = branchOrigins.remove(oldName) ?? 'Saved checkpoint';
+    final offset = readingOffsets.remove(oldName); if (offset != null) readingOffsets[clean] = offset;
+    if (activeBranch == oldName) activeBranch = clean; _notify(); return true;
+  }
   String get displayTitle => label.isEmpty ? title : label;
   String personalize(String text) => text.replaceAll('{player}',playerName).replaceAll('{pronouns}',pronouns);
   AdventureState? get state => turns.reversed.map((t)=>t.state).whereType<AdventureState>().firstOrNull;
@@ -71,7 +90,7 @@ class StorySession extends ChangeNotifier {
   String _retryText = '';
   bool get canRetry => !isReplying && _retryText.isNotEmpty;
   Map<String,dynamic> toJson() => {
-    'id':id,'updatedAt':updatedAt,'archived':archived,'label':label,'selectedStart':selectedStart,
+    'id':id,'updatedAt':updatedAt,'readingOffsets':Map.of(readingOffsets),'branchOrigins':Map.of(branchOrigins),'archived':archived,'label':label,'selectedStart':selectedStart,
     'playerName':playerName,'pronouns':pronouns,'avatar':avatar,'title':title,'character':character,'story':story?.toJson(),
     'branches':branches.map((k,v)=>MapEntry(k,v.map((t)=>t.toJson()).toList())),
     'activeBranch':activeBranch,'summary':summary,'memories':memories,'branchSummaries':_summaries,'branchMemories':_memories,
@@ -84,7 +103,22 @@ class StorySession extends ChangeNotifier {
     s.branches.clear();
     (j['branches'] as Map).forEach((key,values) { s.branches[key as String]=objects(values,Turn.fromJson); });
     s.activeBranch=j['activeBranch'];
-    if (!s.branches.containsKey(s.activeBranch) || s.turns.isEmpty) throw const FormatException('Missing saved timeline');
+    if (!s.branches.containsKey(s.activeBranch) || s.branches.values.any((turns)=>turns.isEmpty)) throw const FormatException('Missing saved timeline');
+    (j['readingOffsets'] as Map? ?? {}).forEach((k,v) { if (s.branches.containsKey(k) && v is num && v.isFinite && v >= 0) s.readingOffsets[k as String] = v.toDouble(); });
+    s.branchOrigins.clear();
+    for (final name in s.branches.keys) { s.branchOrigins[name] = (j['branchOrigins'] as Map? ?? {})[name] as String? ?? 'Saved timeline'; }
+    if (story?.rules != null) {
+      final r = story!.rules!;
+      for (final t in s.branches.values.expand((turns)=>turns)) {
+        final state = t.state;
+        if (state != null && (!r.scenes.any((x)=>x.id==state.scene) || state.actions < 0 ||
+          r.stats.any((x)=>!state.stats.containsKey(x.id) || state.stats[x.id]! < x.min || state.stats[x.id]! > x.max) ||
+          state.goals.any((id)=>!r.goals.any((g)=>g.id==id)) || state.ending.isNotEmpty && r.ending(state.ending)==null)) {
+          s.dispose(); throw const FormatException('Invalid saved world checkpoint');
+        }
+      }
+      if (s.state == null) { s.dispose(); throw const FormatException('Missing saved world checkpoint'); }
+    }
     s._summaries.clear(); s._memories.clear();
     for(final name in s.branches.keys) {
       s._summaries[name]=j['branchSummaries'] is Map?(j['branchSummaries'][name] as String? ?? ''):(name==s.activeBranch?j['summary'] as String:'');
@@ -101,24 +135,28 @@ class StorySession extends ChangeNotifier {
   }
   Timer? _replyTimer;
   bool isReplying=false, replyStopped=false;
-  String pendingReply='', visibleReply='';
-  void _notify() { updatedAt=DateTime.now().millisecondsSinceEpoch; notifyListeners(); }
+  final ValueNotifier<String> replyText = ValueNotifier('');
+  String pendingReply='';
+  String get visibleReply => replyText.value;
+  set visibleReply(String value) { if (!_disposed) replyText.value=value; }
+  bool _disposed = false;
+  void _notify() { if (_disposed) return; updatedAt=DateTime.now().millisecondsSinceEpoch; notifyListeners(); }
   void stopReply() {
-    if(!isReplying) return;
+    if(!isReplying || _disposed) return;
     _replyTimer?.cancel();
     if(visibleReply.isNotEmpty) turns.add(Turn(character,visibleReply,state:state,partial:true));
     isReplying=false; replyStopped=true; visibleReply=''; pendingReply='';
     replyError='Reply interrupted. Retry or choose a new action.'; _notify();
   }
   void finishReply() {
-    if(!isReplying) return;
+    if(!isReplying || _disposed) return;
     _replyTimer?.cancel();
     turns.add(Turn(character,pendingReply,state:_pendingState ?? state));
     isReplying=false; visibleReply=''; pendingReply=''; _retryText=''; _pendingState=null; replyError=null; _notify();
   }
   void send(String text) {
     final clean=text.trim();
-    if(clean.isEmpty || isReplying || completed) return;
+    if(clean.isEmpty || clean.length > 2000 || isReplying || completed || _disposed) return;
     _retryText=''; _pendingState=null;
     turns.add(Turn('You',clean,state:state));
     final rules=story?.rules;
@@ -136,12 +174,15 @@ class StorySession extends ChangeNotifier {
     _retryText=response; _beginReply();
   }
   void retryReply() {
-    if(!canRetry || completed) return;
+    if(!canRetry || completed || _disposed) return;
     if(turns.last.partial) turns.removeLast();
     _beginReply();
   }
   void _beginReply() {
-    final plan=transport.request(_retryText);
+    ReplyPlan plan;
+    try { plan=transport.request(_retryText); }
+    catch (_) { isReplying=false; replyError='Reply could not start. Your progress is unchanged. Retry.'; _notify(); return; }
+    if (plan.text.length > 12000) { isReplying=false; replyError='Reply is too large to display safely. Your progress is unchanged.'; _notify(); return; }
     replyStopped=false; replyError=null; pendingReply=plan.text; visibleReply=''; isReplying=true; _notify();
     _replyTimer=Timer(const Duration(milliseconds:550),(){
       if(plan.failure==PreviewFailure.offline || plan.failure==PreviewFailure.timeout) {
@@ -152,24 +193,28 @@ class StorySession extends ChangeNotifier {
         count=(count+2).clamp(0,characters.length); visibleReply=String.fromCharCodes(characters.take(count));
         if(plan.failure==PreviewFailure.interrupted && count>=10) { stopReply(); }
         else if(count==characters.length) { finishReply(); }
-        else { _notify(); }
+        // Only the streamed-text notifier changes during reveal. Full session
+        // notifications and project saves happen on committed transitions.
       });
     });
   }
   void _clearPending() { _retryText=''; _pendingState=null; pendingReply=''; visibleReply=''; replyError=null; replyStopped=false; }
   void fork({int? throughTurn}) {
-    if(isReplying) return;
+    if(isReplying || _disposed) return;
     final last=throughTurn??turns.length-1;
     if(last<0 || last>=turns.length) return;
     final prefix=turns.take(last+1).toList(); final atEnd=last==turns.length-1;
     final recap=atEnd?summary:prefix.map((t)=>'${t.speaker}: ${t.text}').join('\n');
     final facts=atEnd?List<String>.of(memories):<String>[];
-    final name='Branch ${branches.length}'; branches[name]=prefix; _summaries[name]=recap; _memories[name]=facts; activeBranch=name; _clearPending(); _notify();
+    var number = branches.length;
+    var name='Branch $number'; while (branches.containsKey(name)) { name='Branch ${++number}'; }
+    branchOrigins[name]='$activeBranch · message ${last + 1} · ${prefix.last.text.substring(0, prefix.last.text.length.clamp(0,100))}';
+    branches[name]=prefix; _summaries[name]=recap; _memories[name]=facts; activeBranch=name; _clearPending(); _notify();
   }
   void selectBranch(String name) { if(isReplying || !branches.containsKey(name)) return; activeBranch=name; _clearPending(); _notify(); }
   void updateSummary(String value) { summary=value.trim(); _notify(); }
   void addMemory(String value) { final clean=value.trim(); if(clean.isNotEmpty && !memories.contains(clean)) memories.add(clean); _notify(); }
   void removeMemory(String value) { memories.remove(value); _notify(); }
   @override
-  void dispose() { _replyTimer?.cancel(); super.dispose(); }
+  void dispose() { _disposed=true; _replyTimer?.cancel(); replyText.dispose(); super.dispose(); }
 }

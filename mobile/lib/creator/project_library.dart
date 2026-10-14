@@ -29,6 +29,8 @@ class DeviceProjectStorage implements ProjectStorage {
   }
 }
 
+enum SavePhase { saved, pending, saving, failed, readOnly }
+
 enum WorkVisibility { private, linkOnly, public }
 class CreatorDraft {
   CreatorDraft({required this.id, this.title = '', this.premise = '', this.world = '',
@@ -95,7 +97,11 @@ class ProjectLibrary extends ChangeNotifier {
   String? saveError;
   bool readOnly = false;
   Timer? _saveTimer;
-  Future<void> _writes = Future<void>.value();
+  final ValueNotifier<SavePhase> savePhase = ValueNotifier(SavePhase.saved);
+  int _revision = 0, _savedRevision = 0;
+  Future<void>? _activeSave;
+  bool _isSaving = false;
+  bool onboardingSeen = false;
   bool _disposed = false;
   int _counter = 0;
   List<PublishedWork> get latest {
@@ -107,7 +113,8 @@ class ProjectLibrary extends ChangeNotifier {
   Future<void> load() async {
     final raw = await storage.read();
     if (raw == null) return;
-    final j = jsonDecode(raw) as Map<String, dynamic>;
+    final j = raw.length > 65536 ? await compute(_decodeProject, raw) : _decodeProject(raw);
+    onboardingSeen = j['onboardingSeen'] == true;
     if (j['schema'] != 1) throw const FormatException('Unsupported saved project');
     final profile = j['profile'] is Map ? object(j['profile']) : <String,dynamic>{};
     playerName = profile['name'] as String? ?? 'You'; pronouns = profile['pronouns'] as String? ?? 'they/them'; avatar = profile['avatar'] as String? ?? 'Star';
@@ -124,26 +131,45 @@ class ProjectLibrary extends ChangeNotifier {
     final draft = CreatorDraft(id: '${DateTime.now().microsecondsSinceEpoch}-${_counter++}');
     drafts.add(draft); changed(); return draft;
   }
-  void changed() { _scheduleSave(); if (!_disposed) notifyListeners(); }
-  void _sessionChanged() => _scheduleSave();
+  void changed() { _revision++; _scheduleSave(); if (!_disposed) notifyListeners(); }
+  void _sessionChanged() { _revision++; _scheduleSave(); }
   void _scheduleSave() {
     if (_disposed) return;
     _saveTimer?.cancel();
+    savePhase.value = readOnly ? SavePhase.readOnly : SavePhase.pending;
     _saveTimer = Timer(const Duration(milliseconds: 350), () { flush(); });
   }
   Future<void> flush() {
-    if (readOnly) return Future<void>.value();
+    if (readOnly || _disposed) return Future<void>.value();
     _saveTimer?.cancel();
-    final payload = jsonEncode({'schema': 1, 'drafts': drafts.map((d) => d.toJson()).toList(),
-      'editions': editions.map((w) => w.toJson()).toList(),
-      'sessions': sessions.map((s) => s.toJson()).toList(), 'bookmarks': bookmarks.toList(),
-      'profile': {'name': playerName, 'pronouns': pronouns, 'avatar': avatar, 'readingSize': readingSize}});
-    _writes = _writes.then((_) async {
-      try { await storage.write(payload); saveError = null; }
-      catch (_) { saveError = 'Changes could not be saved on this device. Try again.'; }
-      if (!_disposed) notifyListeners();
-    });
-    return _writes;
+    if (_isSaving) return _activeSave!;
+    final done = Completer<void>();
+    _activeSave = done.future; _isSaving = true;
+    _saveLatest().then((_) { _isSaving = false; done.complete(); }, onError: (Object e, StackTrace stack) { _isSaving = false; done.completeError(e, stack); });
+    return done.future;
+  }
+  Map<String,dynamic> _snapshot() => {'schema': 1, 'onboardingSeen': onboardingSeen,
+    'drafts': drafts.map((d)=>d.toJson()).toList(), 'editions': editions.map((w)=>w.toJson()).toList(),
+    'sessions': sessions.map((s)=>s.toJson()).toList(), 'bookmarks': bookmarks.toList(),
+    'profile': {'name':playerName,'pronouns':pronouns,'avatar':avatar,'readingSize':readingSize}};
+  Future<void> _saveLatest() async {
+    do {
+      final revision = _revision;
+      if (!_disposed) savePhase.value = SavePhase.saving;
+      try {
+        // Encoding runs off the UI isolate on native Flutter. One write at a
+        // time; edits during a write coalesce into the next newest snapshot.
+        final snapshot = _snapshot();
+        final large = drafts.length + editions.length > 20 || sessions.fold<int>(0,(count,s)=>count+s.branches.values.fold<int>(0,(n,t)=>n+t.length)) > 200;
+        final payload = large ? await compute(_encodeProject, snapshot) : _encodeProject(snapshot);
+        await storage.write(payload); saveError = null; _savedRevision = revision;
+      } catch (_) {
+        saveError = 'Changes could not be saved on this device. Try again.';
+        if (!_disposed) { savePhase.value = SavePhase.failed; notifyListeners(); }
+        return;
+      }
+    } while (!_disposed && _savedRevision != _revision);
+    if (!_disposed) { savePhase.value = SavePhase.saved; notifyListeners(); }
   }
   Future<PublishedWork> publish(CreatorDraft draft, WorkVisibility visibility) async {
     if (!draft.ready) throw StateError('Complete the story first');
@@ -197,6 +223,10 @@ class ProjectLibrary extends ChangeNotifier {
     _disposed = true;
     _saveTimer?.cancel();
     for (final s in sessions) { s.removeListener(_sessionChanged); s.dispose(); }
+    savePhase.dispose();
     super.dispose();
   }
 }
+
+String _encodeProject(Map<String,dynamic> snapshot) => jsonEncode(snapshot);
+Map<String,dynamic> _decodeProject(String raw) => object(jsonDecode(raw));

@@ -6,7 +6,8 @@ class AdventurePanel extends StatelessWidget {
   const AdventurePanel({super.key, required this.session});
   final StorySession session;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedBuilder(animation: session, builder: (context, _) => buildPanel(context));
+  Widget buildPanel(BuildContext context) {
     final rules=session.story?.rules, state=session.state;
     if(rules==null || state==null) return const SizedBox.shrink();
     final ending=session.ending;
@@ -25,12 +26,12 @@ class AdventurePanel extends StatelessWidget {
         const Divider(),Text('ENDING UNLOCKED',style:TextStyle(color:Theme.of(context).colorScheme.primary,fontSize:11,letterSpacing:2)),const SizedBox(height:8),
         Text(ending.name,style:const TextStyle(fontSize:24,fontWeight:FontWeight.bold)),const SizedBox(height:12),Text(session.personalize(ending.epilogue),style:const TextStyle(height:1.6)),
         const SizedBox(height:16),Wrap(spacing:8,runSpacing:8,children:[
-          FilledButton(onPressed:()=>session.fork(throughTurn:0),child:const Text('Restart this start')),
-          OutlinedButton(onPressed:()=>session.fork(throughTurn:(session.turns.length-3).clamp(0,session.turns.length-1)),child:const Text('Try another ending'))]),
+          FilledButton(onPressed:session.isReplying?null:()=>session.fork(throughTurn:0),child:const Text('Restart this start')),
+          OutlinedButton(onPressed:session.isReplying?null:()=>session.fork(throughTurn:(session.turns.length-3).clamp(0,session.turns.length-1)),child:const Text('Try another ending'))]),
       ],
-      ExpansionTile(tilePadding:EdgeInsets.zero,title:const Text('Ending collection'),children:[for(final end in rules.endings)
+      ExpansionTile(tilePadding:EdgeInsets.zero,title:Text('Ending collection · ${session.branches.values.expand((t)=>t).map((t)=>t.state?.ending).whereType<String>().where((id)=>id.isNotEmpty).toSet().length}/${rules.endings.length}'),children:[for(final end in rules.endings)
         ListTile(contentPadding:EdgeInsets.zero,leading:Icon(session.branches.values.any((turns)=>turns.any((t)=>t.state?.ending==end.id))?Icons.emoji_events_outlined:Icons.lock_outline),
-          title:Text(session.branches.values.any((turns)=>turns.any((t)=>t.state?.ending==end.id))?end.name:'Undiscovered ending'),subtitle:Text(end.hint))]),
+          title:Text(session.branches.values.any((turns)=>turns.any((t)=>t.state?.ending==end.id))?end.name:'Undiscovered ending'),subtitle:Text('${end.hint}\n${end.goals.where(state.goals.contains).length}/${end.goals.length} required objectives · ${state.actions}/${end.minTurns} actions'))]),
       if(session.story!.mode=='Endless world') const Text('Endless world · objectives and stats continue; ending attempts do not close this timeline.'),
     ])));
   }
@@ -65,4 +66,9 @@ class _PlayerSettingsState extends State<PlayerSettings> {
     const SizedBox(height:20),Text('Reading size · ${size.toInt()}'),Slider(value:size,min:17,max:23,divisions:2,label:'${size.toInt()}',onChanged:(v)=>setState(()=>size=v)),
     const SizedBox(height:12),FilledButton(onPressed:widget.library.readOnly?null:save,child:const Text('Save settings')),
   ])));
+}
+
+class AdventureSummary extends StatelessWidget {
+  const AdventureSummary({super.key,required this.session,required this.onTap});final StorySession session;final VoidCallback onTap;
+  @override Widget build(BuildContext context){final rules=session.story!.rules!,state=session.state!;return Material(child:InkWell(onTap:onTap,child:Padding(padding:const EdgeInsets.symmetric(horizontal:16,vertical:8),child:Row(children:[Expanded(child:Wrap(spacing:12,runSpacing:4,children:[for(final stat in rules.stats)Text('${stat.name}: ${state.stats[stat.id]}',style:const TextStyle(fontSize:11)),Text('Objectives ${state.goals.length}/${rules.goals.length}',style:const TextStyle(fontSize:11))])),const Icon(Icons.expand_more,size:18)]))));}
 }

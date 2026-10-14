@@ -3,6 +3,7 @@ import '../main.dart' show Artwork, panel, lavender, muted, line;
 import '../story_session.dart';
 import 'project_library.dart';
 import 'rules_editor.dart';
+import '../ui_helpers.dart';
 
 class CreatorStudio extends StatefulWidget {
   const CreatorStudio({super.key, required this.library, required this.draft, required this.onPlay});
@@ -40,6 +41,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
     d.character = companion.text.trim().isEmpty ? 'Aira' : companion.text.trim(); d.creator = creator.text;
     d.tags = tags.text.split(',').map((s)=>s.trim()).where((s)=>s.isNotEmpty).take(8).toList();
     widget.library.changed();
+    if (mounted) setState(() {});
   }
   void setStep(int value) {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -63,6 +65,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
     setStep(step + 1);
   }
   Future<void> save({bool edition = false}) async {
+    if (saving) return;
     sync();
     if (edition && !d.ready) { setState(() => error = 'Complete the story and its opening first.'); return; }
     setState(() => saving = true);
@@ -80,7 +83,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
   }
   Widget field(TextEditingController c, String label, String hint, {int lines = 1, int limit = 500}) =>
     Padding(padding: const EdgeInsets.only(bottom: 18), child: TextField(
-      controller: c, onChanged: (_) => sync(), minLines: lines, maxLines: lines + 2,
+      controller: c, onChanged: (_) { if (error != null) error = null; sync(); }, minLines: lines, maxLines: lines + 2,
       maxLength: limit, decoration: InputDecoration(labelText: label, hintText: hint)));
   Widget options(String label, List<String> values, String current, void Function(String) select) =>
     Padding(padding: const EdgeInsets.only(bottom: 22), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,6 +97,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
       actions: [TextButton(onPressed: saving ? null : () => save(), child: const Text('Save draft'))]),
     body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
       child: ListView(controller: scroll, padding: const EdgeInsets.all(22), children: [
+        SaveIndicator(library: widget.library), const SizedBox(height: 12),
         Text('STEP ${step + 1} OF 3', style: const TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)),
         const SizedBox(height: 12),
         LinearProgressIndicator(value: (step + 1) / 3, color: lavender, backgroundColor: line),
@@ -134,6 +138,7 @@ class _CreatorStudioState extends State<CreatorStudio> {
           const SizedBox(height: 18),
           OutlinedButton.icon(onPressed: !d.ready ? null : () async {
             sync();
+            if (!d.ready) { setState(() => error = 'Complete the story and opening before preview.'); return; }
             final problems = d.rules?.validate() ?? [];
             if (problems.isNotEmpty) { setState(() => error = problems.first); return; }
             String? start;
