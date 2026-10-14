@@ -52,11 +52,13 @@ class StorySession extends ChangeNotifier {
   bool archived = false;
   String label = '';
   final Map<String,double> readingOffsets = {};
+  final Map<String,int> readingWindows = {};
   final Map<String,String> branchOrigins = {'Original':'Starting scene'};
   double? get readingOffset => readingOffsets[activeBranch];
-  void recordReadingOffset(double offset) {
+  void recordReadingOffset(double offset, {int? windowStart}) {
     if (!offset.isFinite || offset < 0 || _disposed) return;
-    if ((readingOffsets[activeBranch] ?? -1) == offset) return;
+    if ((readingOffsets[activeBranch] ?? -1) == offset && (windowStart == null || readingWindows[activeBranch] == windowStart)) return;
+    if (windowStart != null && windowStart >= 0) readingWindows[activeBranch] = windowStart;
     readingOffsets[activeBranch] = offset; notifyListeners();
   }
   bool renameBranch(String oldName, String newName) {
@@ -65,6 +67,7 @@ class StorySession extends ChangeNotifier {
     final transcript = branches.remove(oldName)!; branches[clean] = transcript;
     _summaries[clean] = _summaries.remove(oldName) ?? ''; _memories[clean] = _memories.remove(oldName) ?? [];
     branchOrigins[clean] = branchOrigins.remove(oldName) ?? 'Saved checkpoint';
+    final window = readingWindows.remove(oldName); if (window != null) readingWindows[clean] = window;
     final offset = readingOffsets.remove(oldName); if (offset != null) readingOffsets[clean] = offset;
     if (activeBranch == oldName) activeBranch = clean; _notify(); return true;
   }
@@ -90,7 +93,7 @@ class StorySession extends ChangeNotifier {
   String _retryText = '';
   bool get canRetry => !isReplying && _retryText.isNotEmpty;
   Map<String,dynamic> toJson() => {
-    'id':id,'updatedAt':updatedAt,'readingOffsets':Map.of(readingOffsets),'branchOrigins':Map.of(branchOrigins),'archived':archived,'label':label,'selectedStart':selectedStart,
+    'id':id,'updatedAt':updatedAt,'readingOffsets':Map.of(readingOffsets),'readingWindows':Map.of(readingWindows),'branchOrigins':Map.of(branchOrigins),'archived':archived,'label':label,'selectedStart':selectedStart,
     'playerName':playerName,'pronouns':pronouns,'avatar':avatar,'title':title,'character':character,'story':story?.toJson(),
     'branches':branches.map((k,v)=>MapEntry(k,v.map((t)=>t.toJson()).toList())),
     'activeBranch':activeBranch,'summary':summary,'memories':memories,'branchSummaries':_summaries,'branchMemories':_memories,
@@ -105,6 +108,7 @@ class StorySession extends ChangeNotifier {
     s.activeBranch=j['activeBranch'];
     if (!s.branches.containsKey(s.activeBranch) || s.branches.values.any((turns)=>turns.isEmpty)) throw const FormatException('Missing saved timeline');
     (j['readingOffsets'] as Map? ?? {}).forEach((k,v) { if (s.branches.containsKey(k) && v is num && v.isFinite && v >= 0) s.readingOffsets[k as String] = v.toDouble(); });
+    (j['readingWindows'] as Map? ?? {}).forEach((k,v) { if (s.branches.containsKey(k) && v is int && v >= 0) s.readingWindows[k as String] = v.clamp(0,s.branches[k]!.length-1); });
     s.branchOrigins.clear();
     for (final name in s.branches.keys) { s.branchOrigins[name] = (j['branchOrigins'] as Map? ?? {})[name] as String? ?? 'Saved timeline'; }
     if (story?.rules != null) {

@@ -15,7 +15,7 @@ Scope: current Flutter frontend branch, before live backend integration.
 
 ## Performance and crash-risk changes
 
-- Sliver-based transcript rendering creates widgets for the visible region instead of the whole history. Streaming uses a separate text notifier and does not trigger project saves on every character update.
+- Sliver-based transcript rendering creates widgets for the visible region instead of the whole history. History pages are bounded to 40 messages with Earlier/Later/Jump to latest controls, limiting variable-height jump layout work without deleting messages. Page and pixel position persist per timeline. Streaming uses a separate text notifier and does not trigger project saves on every character update.
 - Native large JSON encode/decode uses a background isolate. Small saves avoid isolate overhead. Only one save is active; edits and repeated flushes coalesce to the newest snapshot. No growing queue of serialized copies.
 - Reading-position writes debounce; timers/listeners are canceled on reader/editor disposal. Leaving the reader stops an active reply and retains its partial state for retry.
 - Prepared image decoding is bounded; full-screen artwork has a separate bounded resolution. Rule editor field controllers are released with the screen.

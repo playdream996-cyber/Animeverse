@@ -60,6 +60,13 @@ void main(){
     await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:ChatScreen(session:s)));await tester.pumpAndSettle();expect(find.byType(TurnMessage).evaluate().length,lessThan(20));expect(tester.takeException(),isNull);
     final position=tester.state<ScrollableState>(find.byType(Scrollable).first).position;expect(position.pixels,0);await tester.pumpWidget(const SizedBox());s.dispose();
   });
+  testWidgets('reopening long history uses a bounded recent page and permits older pages',(tester)async{
+    phone(tester);final s=StorySession('Long journey','Aira');for(var i=0;i<2000;i++){s.branches['Original']!.add(Turn('Aira','Message $i. The next path is yours.'));}
+    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:ChatScreen(session:s)));await tester.pumpAndSettle();
+    final list=tester.widget<SliverList>(find.byType(SliverList));expect((list.delegate as SliverChildBuilderDelegate).estimatedChildCount,lessThanOrEqualTo(40));
+    await tester.scrollUntilVisible(find.text('Earlier messages'),-300,scrollable:find.descendant(of:find.byType(ChatScreen),matching:find.byType(Scrollable)).first);await tester.pumpAndSettle();await tester.tap(find.text('Earlier messages'));await tester.pumpAndSettle();
+    expect(find.textContaining('Messages 1922–1961'),findsOneWidget);expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox());expect(s.readingWindows['Original'],1921);s.dispose();
+  });
   testWidgets('locked choices explain required stats',(tester)async{
     phone(tester);final s=StorySession('Lighthouse','Mika',story:lighthouseStory());s.send('Search the keeper’s desk');s.finishReply();s.send('Take the shortcut');s.finishReply();
     await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:ChatScreen(session:s)));await tester.pumpAndSettle();expect(find.text('Needs Insight 2 · you have 1'),findsOneWidget);expect(find.text('Relight the lighthouse'),findsOneWidget);expect(tester.takeException(),isNull);await tester.pumpWidget(const SizedBox());s.dispose();

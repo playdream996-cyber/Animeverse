@@ -16,15 +16,32 @@ class _ChatScreenState extends State<ChatScreen>{
   Timer? _readingTimer;
   double textSize=17;
   bool _layoutQueued=false;
+  static const historyPageSize=40;
+  int windowStart=0;
+  int get windowEnd=>(windowStart+historyPageSize).clamp(0,s.turns.length);
+  bool get atLatest=>windowEnd==s.turns.length;
+  int savedWindow()=>s.readingWindows[s.activeBranch]??(s.readingOffset==null?(s.turns.length-historyPageSize).clamp(0,s.turns.length):0);
   late String _branch;
   StorySession get s=>widget.session;
-  @override void initState(){super.initState();textSize=widget.library?.readingSize??17;_branch=s.activeBranch;s.addListener(refresh);s.replyText.addListener(followReply);scroll.addListener(readingChanged);restoreReading();}
-  void readingChanged(){_readingTimer?.cancel();_readingTimer=Timer(const Duration(milliseconds:600),(){if(mounted&&scroll.hasClients)s.recordReadingOffset(scroll.offset.clamp(0,scroll.position.maxScrollExtent));});}
+  @override void initState(){super.initState();textSize=widget.library?.readingSize??17;_branch=s.activeBranch;windowStart=savedWindow();s.addListener(refresh);s.replyText.addListener(followReply);scroll.addListener(readingChanged);restoreReading();}
+  void readingChanged(){_readingTimer?.cancel();_readingTimer=Timer(const Duration(milliseconds:600),(){if(mounted&&scroll.hasClients)s.recordReadingOffset(scroll.offset.clamp(0,scroll.position.maxScrollExtent),windowStart:windowStart);});}
   void restoreReading(){WidgetsBinding.instance.addPostFrameCallback((_){if(!mounted||!scroll.hasClients)return;final saved=s.readingOffset;scroll.jumpTo(saved==null?(s.turns.length>1?scroll.position.maxScrollExtent:0):saved.clamp(0,scroll.position.maxScrollExtent));});}
-  void followReply(){if(!mounted||!scroll.hasClients||scroll.position.maxScrollExtent-scroll.offset>120||_layoutQueued)return;_layoutQueued=true;WidgetsBinding.instance.addPostFrameCallback((_){_layoutQueued=false;if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}
-  void refresh(){if(!mounted)return;final changed=_branch!=s.activeBranch;final follow=scroll.hasClients&&scroll.position.maxScrollExtent-scroll.offset<120;setState(()=>_branch=s.activeBranch);if(changed){_readingTimer?.cancel();restoreReading();}else if(follow){WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}}
-  @override void dispose(){_readingTimer?.cancel();s.removeListener(refresh);s.replyText.removeListener(followReply);scroll.removeListener(readingChanged);if(scroll.hasClients)s.recordReadingOffset(scroll.offset.clamp(0,scroll.position.maxScrollExtent));s.stopReply();input.dispose();scroll.dispose();super.dispose();}
-  void send([String? choice]){if(s.isReplying||s.completed)return;final value=(choice??input.text).trim();if(value.isEmpty)return;s.send(value);input.clear();WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}
+  void followReply(){if(!atLatest||!mounted||!scroll.hasClients||scroll.position.maxScrollExtent-scroll.offset>120||_layoutQueued)return;_layoutQueued=true;WidgetsBinding.instance.addPostFrameCallback((_){_layoutQueued=false;if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}
+  void refresh(){if(!mounted)return;final changed=_branch!=s.activeBranch;final follow=scroll.hasClients&&scroll.position.maxScrollExtent-scroll.offset<120;setState((){_branch=s.activeBranch;if(changed)windowStart=savedWindow();});if(changed){_readingTimer?.cancel();restoreReading();}else if(follow){WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}}
+  @override void dispose(){_readingTimer?.cancel();s.removeListener(refresh);s.replyText.removeListener(followReply);scroll.removeListener(readingChanged);if(scroll.hasClients)s.recordReadingOffset(scroll.offset.clamp(0,scroll.position.maxScrollExtent),windowStart:windowStart);s.stopReply();input.dispose();scroll.dispose();super.dispose();}
+  void send([String? choice]){if(s.isReplying||s.completed)return;final value=(choice??input.text).trim();if(value.isEmpty)return;setState(()=>windowStart=(s.turns.length-historyPageSize+3).clamp(0,s.turns.length));s.send(value);input.clear();WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&scroll.hasClients)scroll.jumpTo(scroll.position.maxScrollExtent);});}
+  void page(int start,{bool latest=false}){
+    _readingTimer?.cancel();
+    setState(()=>windowStart=start.clamp(0,s.turns.length-1));
+    s.recordReadingOffset(0,windowStart:windowStart);
+    WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&scroll.hasClients)scroll.jumpTo(latest?scroll.position.maxScrollExtent:0);});
+  }
+  Widget historyControls()=>Padding(padding:const EdgeInsets.all(16),child:Column(children:[
+    Text('Messages ${windowStart+1}–$windowEnd of ${s.turns.length}',style:const TextStyle(color:muted,fontSize:11)),
+    Wrap(spacing:8,runSpacing:4,children:[if(windowStart>0)TextButton(onPressed:()=>page((windowStart-historyPageSize).clamp(0,s.turns.length)),child:const Text('Earlier messages')),
+      if(!atLatest)TextButton(onPressed:()=>page(windowEnd),child:const Text('Later messages')),
+      if(!atLatest)TextButton(onPressed:()=>page((s.turns.length-historyPageSize).clamp(0,s.turns.length),latest:true),child:const Text('Jump to latest'))]),
+  ]));
   Future<void> branchAfter(int index)async{
     final yes=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(title:const Text('Try another path?'),content:const Text('Keep the original timeline and start a new one after this message. Earlier checkpoints clear pinned notes so later discoveries cannot leak into the past.'),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Create branch'))]));
     if(yes==true&&mounted)s.fork(throughTurn:index);
@@ -53,18 +70,19 @@ class _ChatScreenState extends State<ChatScreen>{
     })]);
   }
   Widget footer()=>Padding(padding:const EdgeInsets.fromLTRB(22,0,22,24),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    if(s.isReplying)ReplyStream(session:s,textSize:textSize),
-    if(s.completed)AdventurePanel(session:s),
-    if(s.replyError!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(s.replyError!,style:const TextStyle(color:Colors.orangeAccent)),if(s.canRetry)TextButton.icon(onPressed:s.retryReply,icon:const Icon(Icons.refresh),label:const Text('Retry reply'))]))),
+    if(s.isReplying&&atLatest)ReplyStream(session:s,textSize:textSize),
+    if(s.completed&&atLatest)AdventurePanel(session:s),
+    if(s.replyError!=null&&atLatest)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(s.replyError!,style:const TextStyle(color:Colors.orangeAccent)),if(s.canRetry)TextButton.icon(onPressed:s.retryReply,icon:const Icon(Icons.refresh),label:const Text('Retry reply'))]))),
     if(s.replyStopped)const Padding(padding:EdgeInsets.only(bottom:12),child:Text('Reply stopped',style:TextStyle(color:muted,fontSize:12))),
-    if(!s.isReplying&&!s.completed)choices(),
+    if(!s.isReplying&&!s.completed&&atLatest)choices(),
+    if(!atLatest)TextButton(onPressed:()=>page((s.turns.length-historyPageSize).clamp(0,s.turns.length),latest:true),child:const Text('Jump to latest')),
   ]));
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(titleSpacing:0,title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(s.displayTitle,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:14,fontWeight:FontWeight.w600)),const SizedBox(height:2),Text(s.activeBranch,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(color:muted,fontSize:10))]),actions:[
     IconButton(tooltip:'Adventure status',onPressed:status,icon:const Icon(Icons.insights_outlined)),
     PopupMenuButton<String>(tooltip:'Story controls',onSelected:(v){if(v=='memory')memories();if(v=='branch')branches();if(v=='status')status();if(v=='fault')transportTest();if(v=='size'){setState(()=>textSize=textSize>=23?17:textSize+3);if(widget.library!=null){widget.library!.readingSize=textSize;widget.library!.changed();}}},itemBuilder:(_)=>[const PopupMenuItem(value:'memory',child:Text('Memories & summary')),PopupMenuItem(value:'branch',enabled:!s.isReplying,child:const Text('Story branches')),const PopupMenuItem(value:'status',child:Text('Adventure status')),const PopupMenuItem(value:'size',child:Text('Reading size')),PopupMenuItem(value:'fault',enabled:!s.isReplying,child:const Text('Preview connection tests'))]),
   ]),body:SafeArea(top:false,child:Center(child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760),child:Column(children:[
     if(s.state!=null)AdventureSummary(session:s,onTap:status),
-    Expanded(child:CustomScrollView(controller:scroll,slivers:[SliverToBoxAdapter(child:header()),SliverList.builder(itemCount:s.turns.length,itemBuilder:(context,index)=>RepaintBoundary(child:TurnMessage(key:ObjectKey(s.turns[index]),turn:s.turns[index],session:s,textSize:textSize,onBranch:s.isReplying?null:()=>branchAfter(index)))),SliverToBoxAdapter(child:footer())])),
+    Expanded(child:CustomScrollView(controller:scroll,slivers:[SliverToBoxAdapter(child:header()),if(s.turns.length>historyPageSize)SliverToBoxAdapter(child:historyControls()),SliverList.builder(itemCount:windowEnd-windowStart,itemBuilder:(context,index){final absolute=windowStart+index;return RepaintBoundary(child:TurnMessage(key:ObjectKey(s.turns[absolute]),turn:s.turns[absolute],session:s,textSize:textSize,onBranch:s.isReplying?null:()=>branchAfter(absolute)));}),SliverToBoxAdapter(child:footer())])),
     Container(decoration:const BoxDecoration(color:ink,border:Border(top:BorderSide(color:line))),padding:const EdgeInsets.all(10),child:Column(children:[if(widget.library!=null)Align(alignment:Alignment.centerRight,child:SaveIndicator(library:widget.library!)),Row(crossAxisAlignment:CrossAxisAlignment.end,children:[IconButton(tooltip:'Memories',onPressed:memories,icon:const Icon(Icons.auto_stories_outlined,color:muted,size:20)),Expanded(child:TextField(controller:input,enabled:!s.completed,minLines:1,maxLines:4,maxLength:2000,decoration:InputDecoration(hintText:s.completed?'Ending reached · try another path':'Write your next move…',counterText:'',isDense:true),onSubmitted:(_)=>send())),const SizedBox(width:8),IconButton.filled(tooltip:'Send action',onPressed:s.isReplying||s.completed?null:send,icon:const Icon(Icons.arrow_upward,size:21))])])),
   ])))));
 }
