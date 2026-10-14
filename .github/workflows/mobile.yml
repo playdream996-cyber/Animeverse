@@ -27,6 +27,14 @@ jobs:
           cp -r /tmp/animeverse-platform/android mobile/
           cp -r /tmp/animeverse-platform/web mobile/
           cp /tmp/animeverse-platform/.metadata mobile/
+          python - <<'PYMANIFEST'
+          from pathlib import Path
+          manifest = Path('mobile/android/app/src/main/AndroidManifest.xml')
+          xml = manifest.read_text()
+          if 'android.permission.INTERNET' not in xml:
+              xml = xml.replace('<application', '<uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
+          manifest.write_text(xml)
+          PYMANIFEST
       - run: flutter pub get
         working-directory: mobile
       - run: flutter analyze
