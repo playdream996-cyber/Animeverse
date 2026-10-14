@@ -1,0 +1,214 @@
+{
+  "sha256": "3b9639e4114b0d88edeb3de043ad4a09a6f0ad4369c58bb7f3d52efdf905c977",
+  "hermes_version": 96,
+  "string_count": 91282,
+  "static_only": true,
+  "interpretation": "Presence of references, not runtime verification",
+  "evidence": {
+    "reply_presentation": [
+      {
+        "value": "LoadingMessage",
+        "string_id": 26980
+      },
+      {
+        "value": "StreamLoading",
+        "string_id": 32973
+      },
+      {
+        "value": "appendChunkToStreamingMessage",
+        "string_id": 51741
+      },
+      {
+        "value": "handleStopStreaming",
+        "string_id": 59118
+      },
+      {
+        "value": "MessageStreamingSync",
+        "string_id": 72714
+      }
+    ],
+    "publication": [
+      {
+        "value": "VISIBILITY_PUBLIC",
+        "string_id": 26325
+      },
+      {
+        "value": "VISIBILITY_PRIVATE",
+        "string_id": 53376
+      },
+      {
+        "value": "VISIBILITY_SECRET",
+        "string_id": 53377
+      },
+      {
+        "value": "usePatchStoryVisibility",
+        "string_id": 63548
+      },
+      {
+        "value": "/ooc-api/story-drafts",
+        "string_id": 6143
+      },
+      {
+        "value": "/ooc-api/story-drafts/v2",
+        "string_id": 6147
+      }
+    ],
+    "community": [
+      {
+        "value": "storyCommentControllerCreate",
+        "string_id": 32211
+      },
+      {
+        "value": "storyCommentControllerReport",
+        "string_id": 57080
+      },
+      {
+        "value": "storyCommentControllerPin",
+        "string_id": 33174
+      },
+      {
+        "value": "profileControllerSearchProfile",
+        "string_id": 62357
+      },
+      {
+        "value": "New from Creators You Follow",
+        "string_id": 34610
+      },
+      {
+        "value": "FollowingCreatorDetailScreen",
+        "string_id": 37362
+      }
+    ],
+    "creation_and_memory": [
+      {
+        "value": "StoryUserNoteScreen",
+        "string_id": 41764
+      },
+      {
+        "value": "chatV3ControllerCreateSummary",
+        "string_id": 41246
+      },
+      {
+        "value": "chatV3ControllerUpdateSummary",
+        "string_id": 56989
+      },
+      {
+        "value": "chatV3ControllerGetSummariesVersion",
+        "string_id": 56978
+      },
+      {
+        "value": "getOOCOriginalStatsConfig",
+        "string_id": 59093
+      }
+    ],
+    "branching": [
+      {
+        "value": "parent_chat_id",
+        "string_id": 56990
+      },
+      {
+        "value": "chatV3ControllerApplySnapshot",
+        "string_id": 56955
+      },
+      {
+        "value": "chatV3ControllerBranchChat",
+        "string_id": 35643
+      },
+      {
+        "value": "useCreateBranch",
+        "string_id": 56173
+      }
+    ],
+    "endings": [
+      {
+        "value": "EndingCollectionScreen",
+        "string_id": 26915
+      },
+      {
+        "value": "EndingDetailScreen",
+        "string_id": 26919
+      },
+      {
+        "value": "CreateStoryDraftEndingConditionRequestGroupOperator",
+        "string_id": 49956
+      },
+      {
+        "value": "CreateStoryEndingConditionRuleRequestComparisonOperator",
+        "string_id": 49992
+      },
+      {
+        "value": "EndingHintSheet",
+        "string_id": 50462
+      }
+    ],
+    "shortcuts": [
+      {
+        "value": "My Slash Commands",
+        "string_id": 51846
+      },
+      {
+        "value": "Slash Command Hub",
+        "string_id": 41362
+      },
+      {
+        "value": "The prompt to inject when this slash command is used",
+        "string_id": 25399
+      },
+      {
+        "value": "Other users can find and save your slash command.",
+        "string_id": 52052
+      }
+    ],
+    "creator_program": [
+      {
+        "value": "Official Creator",
+        "string_id": 34072
+      },
+      {
+        "value": "Certified Creator",
+        "string_id": 49358
+      },
+      {
+        "value": "/ooc-api/creators/me/revenue",
+        "string_id": 6053
+      },
+      {
+        "value": "/ooc-api/creators/missions/status",
+        "string_id": 6060
+      }
+    ],
+    "ai_rpg": [
+      {
+        "value": "AIRPGGameScreen",
+        "string_id": 26398
+      },
+      {
+        "value": "AIRPGReturnByDeathUpdateCard",
+        "string_id": 26550
+      },
+      {
+        "value": "AIRPGRespawnUpdateCard",
+        "string_id": 26539
+      },
+      {
+        "value": "AIRPGRequiredDice",
+        "string_id": 30627
+      },
+      {
+        "value": "useAIRPGSocket",
+        "string_id": 27731
+      }
+    ]
+  },
+  "missing": {
+    "reply_presentation": [],
+    "publication": [],
+    "community": [],
+    "creation_and_memory": [],
+    "branching": [],
+    "endings": [],
+    "shortcuts": [],
+    "creator_program": [],
+    "ai_rpg": []
+  }
+}

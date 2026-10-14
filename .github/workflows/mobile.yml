@@ -1,0 +1,62 @@
+name: Mobile frontend
+on:
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate standard Flutter platform wrappers
+        run: |
+          flutter create --project-name animeverse --platforms=android,web /tmp/animeverse-platform
+          cp -r /tmp/animeverse-platform/android mobile/
+          cp -r /tmp/animeverse-platform/web mobile/
+          cp /tmp/animeverse-platform/.metadata mobile/
+          python - <<'PYMANIFEST'
+          from pathlib import Path
+          manifest = Path('mobile/android/app/src/main/AndroidManifest.xml')
+          xml = manifest.read_text()
+          if 'android.permission.INTERNET' not in xml:
+              xml = xml.replace('<application', '<uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
+          manifest.write_text(xml)
+          PYMANIFEST
+      - run: flutter pub get
+        working-directory: mobile
+      - run: flutter analyze
+        working-directory: mobile
+      - run: flutter test --update-goldens
+        working-directory: mobile
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: animeverse-ui-previews
+          path: mobile/test/goldens/*.png
+      - run: flutter build apk --debug
+        working-directory: mobile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: animeverse-demo-apk
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Build optimized Android test APKs
+        run: flutter build apk --release --split-per-abi
+        working-directory: mobile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: animeverse-release-test-apks
+          path: mobile/build/app/outputs/flutter-apk/app-*-release.apk
