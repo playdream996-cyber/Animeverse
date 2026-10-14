@@ -45,7 +45,8 @@ class _RulesEditorState extends State<RulesEditor> {
       onChanged:(v)=>setState((){row[key]=v??'';dirty=true;}))]));
   }
   Widget goals(Map row)=>Column(key:fieldKey(row,'goals'),crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Objectives'),Wrap(spacing:6,children:[for(final g in rows('goals'))FilterChip(label:Text(g['title']),selected:(row['goals'] as List).contains(g['id']),onSelected:(v)=>setState((){dirty=true;if(v){(row['goals'] as List).add(g['id']);}else{(row['goals'] as List).remove(g['id']);}}))])]);
-  Widget statMap(Map row,String key,String label)=>ExpansionTile(key:fieldKey(row,key),title:Text(label),children:[for(final s in rows('stats'))Column(children:[SwitchListTile(title:Text(s['name']),value:(row[key] as Map).containsKey(s['id']),onChanged:(v)=>setState((){dirty=true;if(v){row[key][s['id']]=0;}else{(row[key] as Map).remove(s['id']);}})),if((row[key] as Map).containsKey(s['id']))number(row[key] as Map,s['id'],label)])]);
+  Widget statMap(Map row,String key,String label)=>focusId!=null?Column(key:fieldKey(row,key),crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label),...statControls(row,key,label)]):ExpansionTile(key:fieldKey(row,key),title:Text(label),children:statControls(row,key,label));
+  List<Widget> statControls(Map row,String key,String label)=>[for(final s in rows('stats'))Column(children:[SwitchListTile(title:Text(s['name']),value:(row[key] as Map).containsKey(s['id']),onChanged:(v)=>setState((){dirty=true;if(v){row[key][s['id']]=0;}else{(row[key] as Map).remove(s['id']);}})),if((row[key] as Map).containsKey(s['id']))number(row[key] as Map,s['id'],label)])];
   Map<String,dynamic> action()=>{'id':keyFor('action'),'label':'New choice','reply':'Describe what happens.','next':rows('scenes').isEmpty?'':rows('scenes').first['id'],'deltas':<String,int>{},'goals':<String>[],'minimum':<String,int>{},'ending':''};
   Map<String,dynamic> create(String g)=>switch(g){
     'stats'=>{'id':keyFor('stat'),'name':'New stat','min':0,'max':5,'initial':0},
@@ -53,7 +54,7 @@ class _RulesEditorState extends State<RulesEditor> {
     'lore'=>{'id':keyFor('lore'),'title':'New lore','body':'A rule of this world.','stat':'','atLeast':0,'priority':0,'scope':'World'},
     'endings'=>{'id':keyFor('ending'),'name':'New ending','epilogue':'Write the final scene.','hint':'What should the player pursue?','minTurns':1,'minimum':<String,int>{},'maximum':<String,int>{},'goals':<String>[]},
     'scenes'=>{'id':keyFor('scene'),'title':'New scene','art':storyArt.first,'actions':[action()]},
-    _=>{'id':keyFor('start'),'name':'New start','opening':'{player}, your adventure begins.','scene':rows('scenes').isEmpty?'':rows('scenes').first['id'],'stats':<String,int>{}};
+    _=>{'id':keyFor('start'),'name':'New start','opening':'{player}, your adventure begins.','scene':rows('scenes').isEmpty?'':rows('scenes').first['id'],'stats':<String,int>{}}};
   Future<void> remove(String g,Map row,{Map? scene})async{
     final confirmed=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(title:const Text('Remove this entry?'),content:Text(g=='stats'||g=='goals'?'Related conditions and effects will also be removed. You can undo this deletion.':'Other entries may need updated references. You can undo this deletion.'),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Remove'))]));
     if(confirmed!=true||!mounted)return;
