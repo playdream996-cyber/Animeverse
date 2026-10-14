@@ -13,6 +13,10 @@ void phone(WidgetTester tester) {
   tester.view.physicalSize=const Size(390,844);tester.view.devicePixelRatio=1;
   addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
 }
+ThemeData previewTheme() => ThemeData(brightness: Brightness.dark, useMaterial3: true, fontFamily: 'Inter', scaffoldBackgroundColor: ink,
+  colorScheme: ColorScheme.fromSeed(seedColor: lavender, brightness: Brightness.dark, primary: lavender, onPrimary: ink, surface: panel),
+  cardTheme: const CardThemeData(color: panel, elevation: 0), appBarTheme: const AppBarTheme(backgroundColor: ink, surfaceTintColor: Colors.transparent));
+
 void main(){
   setUpAll(loadPreviewFonts);
   testWidgets('discover, bookmark, select alternate start and reach an ending',(tester)async{
@@ -37,7 +41,7 @@ void main(){
   });
   testWidgets('creator edits a bounded stat and applies the playable rules',(tester)async{
     phone(tester);AdventureRules? saved;
-    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:const Scaffold()));
+    await tester.pumpWidget(MaterialApp(theme:previewTheme(),home:const Scaffold()));
     final context=tester.element(find.byType(Scaffold));
     Navigator.of(context).push(MaterialPageRoute<AdventureRules>(builder:(_)=>RulesEditor(rules:lighthouseRules()))).then((r)=>saved=r);
     await tester.pumpAndSettle();await tester.tap(find.text('Stats (3)'));await tester.pumpAndSettle();
@@ -48,7 +52,7 @@ void main(){
   });
   testWidgets('reading and identity controls save on a phone',(tester)async{
     phone(tester);final p=ProjectLibrary(MemoryProjectStorage());
-    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:const Scaffold()));
+    await tester.pumpWidget(MaterialApp(theme:previewTheme(),home:const Scaffold()));
     Navigator.of(tester.element(find.byType(Scaffold))).push(MaterialPageRoute<void>(builder:(_)=>PlayerSettings(library:p)));
     await tester.pumpAndSettle();await tester.enterText(find.byType(TextField),'Noor');tester.testTextInput.hide();await tester.pumpAndSettle();
     await tester.tap(find.text('she/her'));await tester.tap(find.text('Moon'));
@@ -58,7 +62,7 @@ void main(){
   testWidgets('large text adventure status has no overflow and renders',(tester)async{
     phone(tester);final s=StorySession('Lighthouse','Mika',story:lighthouseStory());
     s.send('Listen to Mika');s.finishReply();s.send('Study the signal');s.finishReply();
-    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:MediaQuery(data:const MediaQueryData(textScaler:TextScaler.linear(1.4)),
+    await tester.pumpWidget(MaterialApp(theme:previewTheme(),home:MediaQuery(data:const MediaQueryData(textScaler:TextScaler.linear(1.4)),
       child:Scaffold(appBar:AppBar(title:const Text('Your adventure')),body:RepaintBoundary(key:const Key('adventure'),child:SingleChildScrollView(child:AdventurePanel(session:s)))))));
     await tester.pumpAndSettle();expect(tester.takeException(),isNull);
     await expectLater(find.byKey(const Key('adventure')),matchesGoldenFile('goldens/adventure.png'));
@@ -67,7 +71,7 @@ void main(){
   testWidgets('ending screen and restart render on a phone',(tester)async{
     phone(tester);final s=StorySession('Lighthouse','Mika',story:lighthouseStory());
     for(final action in ['Search the keeper’s desk','Study the signal','Relight the lighthouse']){s.send(action);s.finishReply();}
-    await tester.pumpWidget(MaterialApp(theme:ThemeData.dark(),home:RepaintBoundary(key:const Key('ending'),child:Scaffold(appBar:AppBar(title:const Text('Journey complete')),body:SingleChildScrollView(child:AdventurePanel(session:s))))));
+    await tester.pumpWidget(MaterialApp(theme:previewTheme(),home:RepaintBoundary(key:const Key('ending'),child:Scaffold(appBar:AppBar(title:const Text('Journey complete')),body:SingleChildScrollView(child:AdventurePanel(session:s))))));
     await tester.pumpAndSettle();await tester.ensureVisible(find.text('ENDING UNLOCKED'));await tester.pumpAndSettle();
     await expectLater(find.byKey(const Key('ending')),matchesGoldenFile('goldens/ending.png'));
     await tester.ensureVisible(find.text('Restart this start'));await tester.pumpAndSettle();await tester.tap(find.text('Restart this start'));await tester.pumpAndSettle();
