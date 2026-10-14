@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../main.dart' show Artwork, panel, lavender, muted, line;
 import '../story_session.dart';
 import 'project_library.dart';
+import 'rules_editor.dart';
 
 class CreatorStudio extends StatefulWidget {
   const CreatorStudio({super.key, required this.library, required this.draft, required this.onPlay});
@@ -22,17 +23,22 @@ class _CreatorStudioState extends State<CreatorStudio> {
   late final role = TextEditingController(text: widget.draft.role);
   late final goal = TextEditingController(text: widget.draft.goal);
   late final opening = TextEditingController(text: widget.draft.opening);
+  late final companion = TextEditingController(text: widget.draft.character);
+  late final creator = TextEditingController(text: widget.draft.creator);
+  late final tags = TextEditingController(text: widget.draft.tags.join(', '));
   WorkVisibility visibility = WorkVisibility.private;
   CreatorDraft get d => widget.draft;
   @override
   void dispose() {
-    for (final c in [title, premise, world, role, goal, opening]) { c.dispose(); }
+    for (final c in [title, premise, world, role, goal, opening, companion, creator, tags]) { c.dispose(); }
     scroll.dispose();
     super.dispose();
   }
   void sync() {
     d.title = title.text; d.premise = premise.text; d.world = world.text;
     d.role = role.text; d.goal = goal.text; d.opening = opening.text;
+    d.character = companion.text.trim().isEmpty ? 'Aira' : companion.text.trim(); d.creator = creator.text;
+    d.tags = tags.text.split(',').map((s)=>s.trim()).where((s)=>s.isNotEmpty).take(8).toList();
     widget.library.changed();
   }
   void setStep(int value) {
@@ -60,7 +66,10 @@ class _CreatorStudioState extends State<CreatorStudio> {
     sync();
     if (edition && !d.ready) { setState(() => error = 'Complete the story and its opening first.'); return; }
     setState(() => saving = true);
-    if (edition) { await widget.library.publish(d, visibility); }
+    if (edition) {
+      try { await widget.library.publish(d, visibility); }
+      catch (e) { if (mounted) setState(() { saving = false; error = e.toString(); }); return; }
+    }
     else { await widget.library.flush(); }
     if (!mounted) return;
     if (widget.library.saveError != null) {
@@ -112,9 +121,10 @@ class _CreatorStudioState extends State<CreatorStudio> {
           field(world, 'World', 'A floating city powered by forgotten memories', lines: 2),
           field(role, 'Player role', 'An investigator looking for their past'),
           field(goal, 'Main goal', 'Find the vanished lighthouse keeper', lines: 2),
-          options('Companion', ['Aira', 'Ren', 'Mika'], d.character, (v) => d.character = v),
+          options('Companion', ['Aira', 'Ren', 'Mika'], d.character, (v) { d.character = v; companion.text = v; }),
+          field(companion, 'Companion name', 'Name an original companion', limit: 40),
           options('Adventure type', ['Complete adventure', 'Endless world'], d.mode, (v) => d.mode = v),
-          const Text('These settings will guide the AI when the backend is connected.',
+          const Text('Add adventure rules to make choices playable locally.',
             style: TextStyle(color: muted, fontSize: 12)),
         ],
         if (step == 2) ...[
@@ -124,12 +134,27 @@ class _CreatorStudioState extends State<CreatorStudio> {
           const SizedBox(height: 18),
           OutlinedButton.icon(onPressed: !d.ready ? null : () async {
             sync();
-            final session = StorySession(d.title, d.character, story: d.definition(0));
+            final problems = d.rules?.validate() ?? [];
+            if (problems.isNotEmpty) { setState(() => error = problems.first); return; }
+            final session = StorySession(d.title, d.character, story: d.definition(0), playerName: widget.library.playerName, pronouns: widget.library.pronouns, avatar: widget.library.avatar);
             widget.library.addSession(session); await widget.onPlay(session);
           }, icon: const Icon(Icons.play_arrow), label: const Text('Play preview')),
           const SizedBox(height: 26),
           const Text('Who can discover it?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
+          OutlinedButton.icon(onPressed: () async {
+            sync();
+            final rules = await Navigator.push(context, MaterialPageRoute(builder: (_) => RulesEditor(rules: d.rules)));
+            if (rules != null && mounted) setState(() { d.rules = rules; widget.library.changed(); });
+          }, icon: const Icon(Icons.account_tree_outlined), label: Text(d.rules == null ? 'Add playable adventure rules' : 'Edit adventure rules')),
+          if (d.rules != null) ...[
+            Text('${d.rules!.stats.length} stats · ${d.rules!.starts.length} starts · ${d.rules!.endings.length} endings'),
+            TextButton(onPressed: () => setState(() { d.rules = null; widget.library.changed(); }), child: const Text('Use opening-only preview')),
+          ],
+          const SizedBox(height: 18),
+          field(creator, 'Creator name', 'Your pen name', limit: 40),
+          field(tags, 'Tags', 'Mystery, coastal, choices matter', limit: 240),
+          options('Age rating', ['Everyone', 'Teen', 'Mature'], d.ageRating, (v) => d.ageRating = v),
           for (final v in WorkVisibility.values) ListTile(
             contentPadding: EdgeInsets.zero,
             onTap: () => setState(() => visibility = v),

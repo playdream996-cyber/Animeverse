@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'story_session.dart';
+import 'authored_story.dart';
+import 'player_panels.dart';
+import 'library_hub.dart';
 import 'demo/temporary_story_catalog.dart';
 import 'story_catalog.dart';
 import 'creator/project_library.dart';
@@ -101,6 +104,9 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
           const SizedBox(height: 8), Text(story.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12), Text(story.description, style: const TextStyle(color: muted, height: 1.6)),
           const SizedBox(height: 18), Text('Companion · ${story.character}'),
+          BookmarkControl(library: project, storyKey: story.definition?.id ?? story.title),
+          if (story.definition != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text('By ${story.definition!.creator} · ${story.definition!.ageRating}\n${story.definition!.tags.join(' · ')}')),
+
           if (story.definition != null) StoryGuide(story: story.definition!),
           if (story.definition?.foundation == 'Original creator draft') const Padding(
             padding: EdgeInsets.only(top: 12), child: Text('Local creator edition · your playthrough stays separate.',
@@ -117,7 +123,9 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   static const testStoriesEnabled = bool.fromEnvironment('ANIMEVERSE_DEMO_CATALOG', defaultValue: true);
   final temporaryCatalog = TemporaryStoryCatalog();
   bool loadingCatalog = false;
-  List<StoryCover> get libraryCovers => [...covers, if (testStoriesEnabled)
+  List<StoryCover> get libraryCovers => [...covers,
+    StoryCover(lighthouseStory().title, lighthouseStory().genre, lighthouseStory().description,
+      lighthouseStory().art, lighthouseStory().character, lighthouseStory().tag, definition: lighthouseStory()), if (testStoriesEnabled)
     ...temporaryCatalog.stories.map((s) => StoryCover(s.title, s.genre, s.description, s.art, s.character, s.tag, definition: s)),
     ...project.showcase.map((w) => StoryCover(w.story.title, w.story.genre, w.story.description,
       w.story.art, w.story.character, 'LOCAL SHOWCASE · VERSION ${w.version}', definition: w.story))];
@@ -134,9 +142,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   @override
   void dispose() { WidgetsBinding.instance.removeObserver(this); project.removeListener(projectChanged); project.dispose(); temporaryCatalog.dispose(); search.dispose(); super.dispose(); }
   Future<void> start(String title, {StoryDefinition? definition}) async {
-    if (definition?.foundation == 'Original creator draft') {
-      final session = StorySession(title, definition!.character, story: definition);
-      project.addSession(session); await open(session); return;
+    if (definition?.foundation == 'Original creator draft' || definition?.rules != null) {
+      await createSession(title, definition!.character, definition: definition); return;
     }
     final companion = await showModalBottomSheet<String>(context: context, isScrollControlled: true, backgroundColor: ink,
       builder: (context) => SafeArea(child: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -152,13 +159,27 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
       ])))));
     if (companion == null || !mounted) return;
     final candidates = temporaryCatalog.stories.where((s) => s.title == title);
-    final session = StorySession(title, companion,
-      story: definition ?? (testStoriesEnabled && candidates.isNotEmpty ? candidates.first : null));
-    project.addSession(session);
-    await open(session);
+    await createSession(title, companion, definition: definition ?? (testStoriesEnabled && candidates.isNotEmpty ? candidates.first : null));
+  }
+  Future<void> createSession(String title, String companion, {StoryDefinition? definition}) async {
+    String? startId;
+    if (definition?.rules != null) {
+      startId = await showModalBottomSheet<String>(context: context, isScrollControlled: true,
+        backgroundColor: ink, builder: (context) => SafeArea(child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Choose your beginning', style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12), for (final start in definition!.rules!.starts)
+              ListTile(title: Text(start.name), subtitle: Text(start.opening.replaceAll('{player}', project.playerName)),
+                trailing: const Icon(Icons.arrow_forward), onTap: () => Navigator.pop(context, start.id)),
+          ]))));
+      if (startId == null || !mounted) return;
+    }
+    final session = StorySession(title, companion, story: definition, startId: startId,
+      playerName: project.playerName, pronouns: project.pronouns, avatar: project.avatar);
+    project.addSession(session); await open(session);
   }
   Future<void> open(StorySession session) async {
-    await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ChatScreen(session: session)));
+    await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => ChatScreen(session: session, library: project)));
     await project.flush();
     if (mounted) setState(() {});
   }
@@ -167,7 +188,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     final query = search.text.trim().toLowerCase();
     final visible = libraryCovers.where((s) => (genre == 'All' || genre == s.genre) && '${s.title} ${s.genre} ${s.description} ${s.character}'.toLowerCase().contains(query)).toList();
     return Scaffold(body: SafeArea(child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 24), children: [
-      Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. Replies are scripted. Stories and progress save on this device. Online accounts and sharing are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
+      Row(children: [const Icon(Icons.auto_awesome, color: lavender, size: 22), const SizedBox(width: 9), const Text('animeverse', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, letterSpacing: -1)), const Spacer(), IconButton(tooltip: 'Player settings', onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => PlayerSettings(library: project))), icon: const Icon(Icons.person_outline)), IconButton(tooltip: 'About this preview', onPressed: () => showDialog<void>(context: context, builder: (_) => AlertDialog(title: const Text('A new world, in progress'), content: const Text('This is a frontend preview with original artwork and scripted replies. Replies are scripted. Stories and progress save on this device. Online accounts and sharing are not connected.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))])), icon: const Icon(Icons.info_outline, size: 20))]),
       const SizedBox(height: 24),
       if (tab == 0) ...[
         const Text('YOUR STORY. YOUR RULES.', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2.4, fontWeight: FontWeight.w700)), const SizedBox(height: 8),
@@ -191,10 +212,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         const SizedBox(height: 28), const DemoBadge(),
       ],
       if (tab == 1) ...[
-        const Text('Your library', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('The worlds you stepped into.', style: TextStyle(color: muted)), const SizedBox(height: 24),
-        if (sessions.isEmpty) Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)), child: Column(children: [const Icon(Icons.auto_stories_outlined, size: 40, color: lavender), const SizedBox(height: 16), const Text('Your first chapter is waiting', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text('Choose a world in Discover and make it yours.', textAlign: TextAlign.center, style: TextStyle(color: muted)), const SizedBox(height: 20), FilledButton(onPressed: () => setState(() => tab = 0), child: const Text('Explore stories'))])),
-        for (final s in sessions) Padding(padding: const EdgeInsets.only(bottom: 12), child: Material(color: panel, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => open(s), borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 62, height: 82, child: Artwork(s.story?.art ?? coverFor(s.title).art))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 6), Text('${s.character} · ${s.activeBranch}', style: const TextStyle(color: muted, fontSize: 12)), const SizedBox(height: 8), const Text('Continue chapter →', style: TextStyle(color: lavender, fontSize: 12))]))]))))),
-        const SizedBox(height: 16), const DemoBadge(),
+        LibraryHub(library: project, covers: libraryCovers, onOpen: open, onStory: showDetail,
+          onExplore: () => setState(() => tab = 0)),
       ],
       if (tab == 2) ...[
         const Text('My titles', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
@@ -202,11 +221,11 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         const SizedBox(height: 22),
         if (project.drafts.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 24),
           child: Text('Create your first story in the studio.', style: TextStyle(color: muted))),
-        for (final d in project.drafts.reversed) Padding(padding: const EdgeInsets.only(bottom: 12),
+        for (final d in project.drafts.reversed.where((d) => !d.archived)) Padding(padding: const EdgeInsets.only(bottom: 12),
           child: ListTile(tileColor: panel, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: SizedBox(width: 48, height: 64, child: Artwork(d.art))),
             title: Text(d.title.trim().isEmpty ? 'Untitled draft' : d.title),
-            subtitle: const Text('Draft · saved on this device'), trailing: const Icon(Icons.edit_outlined, color: lavender),
+            subtitle: const Text('Draft · saved on this device'), trailing: PopupMenuButton<String>(tooltip: 'Manage draft', onSelected: (v) { if (v == 'export') storyExport(context, project, d); else project.archiveDraft(d, true); }, itemBuilder: (_) => const [PopupMenuItem(value: 'export', child: Text('Export original story')), PopupMenuItem(value: 'archive', child: Text('Archive draft'))]),
             onTap: () => editDraft(d))),
         if (project.latest.isNotEmpty) ...[
           const SizedBox(height: 22), const Text('Story editions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
@@ -218,6 +237,11 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
               w.story.art, w.story.character, 'BY YOU · VERSION ${w.version}', definition: w.story))),
         ],
         const SizedBox(height: 22), FilledButton.icon(onPressed: () => editDraft(), icon: const Icon(Icons.add), label: const Text('New draft')),
+        TextButton.icon(onPressed: project.readOnly ? null : () => storyImport(context, project), icon: const Icon(Icons.file_download_outlined), label: const Text('Import original story')),
+        if (project.drafts.any((d) => d.archived)) ExpansionTile(title: const Text('Archived drafts'), children: [
+          for (final d in project.drafts.where((d) => d.archived)) ListTile(title: Text(d.title.isEmpty ? 'Untitled draft' : d.title),
+            trailing: TextButton(onPressed: () => project.archiveDraft(d, false), child: const Text('Restore'))),
+        ]),
       ],
       if (tab == 3) ...[
         const Text('THE CREATOR STUDIO', style: TextStyle(color: lavender, letterSpacing: 2, fontSize: 10)),
@@ -286,7 +310,8 @@ class _CreateStoryFormState extends State<CreateStoryForm> {
 }
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.session});
+  const ChatScreen({super.key, required this.session, this.library});
+  final ProjectLibrary? library;
   final StorySession session;
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -296,7 +321,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final scroll = ScrollController();
   double textSize = 17;
   @override
-  void initState() { super.initState(); widget.session.addListener(refresh); }
+  void initState() { super.initState(); textSize = widget.library?.readingSize ?? 17; widget.session.addListener(refresh); }
   void refresh() {
     if (!mounted) return;
     final follow = scroll.hasClients &&
@@ -323,6 +348,21 @@ class _ChatScreenState extends State<ChatScreen> {
         FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Create branch'))]));
     if (confirmed == true && mounted) widget.session.fork(throughTurn: index);
   }
+  Future<void> status() async {
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: ink,
+      builder: (_) => SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: widget.session.story?.rules == null
+        ? const Text('This opening-only story has no authored stats or ending rules.') : AdventurePanel(session: widget.session))));
+  }
+  Future<void> transportTest() async {
+    final transport = widget.session.transport;
+    if (transport is! PreviewTransport || widget.session.isReplying) return;
+    final failure = await showDialog<PreviewFailure>(context: context, builder: (context) => SimpleDialog(
+      title: const Text('Preview connection tests'), children: [
+        const Padding(padding: EdgeInsets.all(16), child: Text('Simulate a failure on the next reply. These controls test recovery locally; no server request is made.')),
+        for (final f in PreviewFailure.values) SimpleDialogOption(onPressed: () => Navigator.pop(context, f), child: Text(f == PreviewFailure.none ? 'Normal reply' : f.name)),
+      ]));
+    if (failure != null && mounted) { transport.nextFailure = failure; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Next reply test: ${failure.name}'))); }
+  }
   Future<void> memories() async { await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: ink, builder: (context) => MemorySheet(session: widget.session)); }
   Future<void> branches() async {
     if (widget.session.isReplying) return;
@@ -331,23 +371,28 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
-    return Scaffold(appBar: AppBar(titleSpacing: 0, title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(s.activeBranch, style: const TextStyle(color: muted, fontSize: 10))]), actions: [IconButton(tooltip: 'Reading size', onPressed: () => setState(() => textSize = textSize == 17 ? 20 : 17), icon: const Icon(Icons.text_fields, size: 20)), PopupMenuButton<String>(tooltip: 'Story controls', onSelected: (value) { if (value == 'memory') memories(); if (value == 'branch') branches(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'memory', child: Text('Memories & summary')), PopupMenuItem(value: 'branch', child: Text('Story branches'))])]),
+    return Scaffold(appBar: AppBar(titleSpacing: 0, title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(s.activeBranch, style: const TextStyle(color: muted, fontSize: 10))]), actions: [IconButton(tooltip: 'Reading size', onPressed: () { setState(() => textSize = textSize >= 23 ? 17 : textSize + 3); if (widget.library != null) { widget.library!.readingSize = textSize; widget.library!.changed(); } }, icon: const Icon(Icons.text_fields, size: 20)), PopupMenuButton<String>(tooltip: 'Story controls', onSelected: (value) { if (value == 'memory') memories(); if (value == 'branch') branches(); if (value == 'fault') transportTest(); if (value == 'status') status(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'memory', child: Text('Memories & summary')), PopupMenuItem(value: 'branch', child: Text('Story branches')), PopupMenuItem(value: 'status', child: Text('Adventure status')), PopupMenuItem(value: 'fault', child: Text('Preview connection tests'))])]),
       body: SafeArea(top: false, child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: Column(children: [
         const Divider(height: 1),
         Expanded(child: ListView(controller: scroll, children: [
-          SizedBox(height: 230, child: Stack(fit: StackFit.expand, children: [Artwork(s.story?.art ?? coverFor(s.title).art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xEE0D0E10)]))), const Positioned(bottom: 20, left: 22, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('CHAPTER 01', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)), SizedBox(height: 6), Text('The first encounter', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700))]))])),
+          SizedBox(height: 230, child: Stack(fit: StackFit.expand, children: [Artwork(s.state == null ? s.story?.art ?? coverFor(s.title).art : s.story!.rules!.scene(s.state!.scene).art), const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xEE0D0E10)]))), Positioned(bottom: 20, left: 22, right: 22, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('CHAPTER 01', style: TextStyle(color: lavender, fontSize: 10, letterSpacing: 2)), SizedBox(height: 6), Text(s.state == null ? 'The first encounter' : s.story!.rules!.scene(s.state!.scene).title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700))]))])),
           Padding(padding: const EdgeInsets.fromLTRB(22, 8, 22, 24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const DemoBadge(),
             if (s.story != null) StoryGuide(story: s.story!),
             const Padding(padding: EdgeInsets.only(top: 12), child: Text('Write what you do or say, or choose a suggested action. Use the split icon beside a message to try another path.', style: TextStyle(color: muted, fontSize: 12, height: 1.5))),
             const SizedBox(height: 24),
             for (final turn in [...s.turns, if (s.isReplying && s.visibleReply.isNotEmpty) Turn(s.character, s.visibleReply)]) Padding(padding: const EdgeInsets.only(bottom: 28), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], Text(turn.speaker, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12)), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)], const Spacer(),
+              Row(children: [if (turn.speaker != 'You') ...[ClipOval(child: SizedBox(width: 26, height: 26, child: Artwork(artFor(turn.speaker)))), const SizedBox(width: 8)], if (turn.speaker == 'You') ...[Icon(s.avatar == 'Star' ? Icons.star_outline : s.avatar == 'Moon' ? Icons.dark_mode_outlined : Icons.eco_outlined, size: 16, color: muted), const SizedBox(width: 6)], Flexible(child: Text(turn.speaker == 'You' ? s.playerName : turn.speaker, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: turn.speaker == 'You' ? muted : lavender, fontWeight: FontWeight.w600, fontSize: 12))), if (turn.speaker == 'You') ...[const SizedBox(width: 8), const Icon(Icons.north_east, size: 12, color: muted)], const Spacer(),
                 if (s.turns.contains(turn)) IconButton(tooltip: 'Branch after this message', visualDensity: VisualDensity.compact, icon: const Icon(Icons.call_split, size: 16, color: muted), onPressed: s.isReplying ? null : () => branchAfter(s.turns.indexOf(turn)))]), const SizedBox(height: 12),
               SelectableText(turn.text, style: TextStyle(fontFamily: 'Lora', fontSize: textSize, height: 1.75, color: turn.speaker == 'You' ? muted : const Color(0xFFDCDDE1))),
             ])),
+            AdventurePanel(session: s),
+            if (s.replyError != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.replyError!, style: const TextStyle(color: Colors.orangeAccent)),
+              if (s.canRetry) TextButton.icon(onPressed: s.retryReply, icon: const Icon(Icons.refresh), label: const Text('Retry reply')),
+            ]))),
             if (s.isReplying && s.visibleReply.isNotEmpty) const ReplyCursor(),
-            if (s.story != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(
+            if (s.story?.referenceTitle != null || s.story?.foundation == 'Public-domain story') Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(
               'Original test story · foundation: ${s.story!.foundation}\n${s.story!.referenceTitle == null ? 'Manga reference not fetched' : 'Manga reference: ${s.story!.referenceTitle}'}',
               style: const TextStyle(color: muted, fontSize: 10))),
             if (s.replyStopped) const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Reply stopped', style: TextStyle(color: muted, fontSize: 12))),
@@ -360,13 +405,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 TextButton(onPressed: s.stopReply, child: const Text('Stop')),
               ]),
             ),
-            if (!s.isReplying) ...[
+            if (!s.isReplying && !s.completed) ...[
             const Divider(), const SizedBox(height: 18), const Text('WHERE DOES YOUR STORY GO?', style: TextStyle(color: muted, fontSize: 9, letterSpacing: 1.5)), const SizedBox(height: 12),
             for (final choice in s.choices) Padding(padding: const EdgeInsets.only(bottom: 8), child: Material(color: panel, borderRadius: BorderRadius.circular(10), child: InkWell(onTap: () => send(choice), borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [const Icon(Icons.subdirectory_arrow_right, size: 17, color: lavender), const SizedBox(width: 10), Expanded(child: Text(choice, style: const TextStyle(fontSize: 13))), const Icon(Icons.arrow_upward, size: 15, color: muted)]))))),
             ],
           ])),
         ])),
-        Container(decoration: const BoxDecoration(color: ink, border: Border(top: BorderSide(color: line))), padding: const EdgeInsets.fromLTRB(12, 10, 12, 10), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.auto_stories_outlined, color: muted, size: 20)), Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: const InputDecoration(hintText: 'Write your next move…', counterText: '', isDense: true), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: s.isReplying ? null : send, icon: const Icon(Icons.arrow_upward, size: 21))])),
+        Container(decoration: const BoxDecoration(color: ink, border: Border(top: BorderSide(color: line))), padding: const EdgeInsets.fromLTRB(12, 10, 12, 10), child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [IconButton(tooltip: 'Memories', onPressed: memories, icon: const Icon(Icons.auto_stories_outlined, color: muted, size: 20)), Expanded(child: TextField(controller: input, minLines: 1, maxLines: 4, maxLength: 2000, decoration: InputDecoration(hintText: s.completed ? 'Ending reached · try another path' : 'Write your next move…', counterText: '', isDense: true), onSubmitted: (_) => send())), const SizedBox(width: 8), IconButton.filled(tooltip: 'Send action', onPressed: s.isReplying || s.completed ? null : send, icon: const Icon(Icons.arrow_upward, size: 21))])),
       ])))));
   }
 }
@@ -423,7 +468,7 @@ class StoryGuide extends StatelessWidget {
         expandedCrossAxisAlignment: CrossAxisAlignment.start, children: [
           for (final entry in {'Your role': story.playerRole, 'Your goal': story.goal, 'World': story.world, 'Adventure type': story.mode}.entries)
             if (entry.value.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 10), child: Text('${entry.key} · ${entry.value}', style: const TextStyle(height: 1.5))),
-          const Text('In this preview, replies are scripted and goals do not trigger endings yet.', style: TextStyle(color: muted, fontSize: 12, height: 1.5)),
+          Text(story.rules == null ? 'This opening-only preview has scripted replies and no ending rules.' : 'This authored adventure has local rules. Choose suggested actions to change stats and reach endings.', style: TextStyle(color: muted, fontSize: 12, height: 1.5)),
         ])));
   }
 }
